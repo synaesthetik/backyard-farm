@@ -1,0 +1,255 @@
+# Roadmap: Backyard Farm Platform
+
+## Overview
+
+Five phases transform an unboxed pile of hardware into a self-hosted farm dashboard where
+sensor data flows reliably from edge nodes to the hub, irrigation and coop automation run
+with farmer approval, flock health is tracked alongside garden zones on a single screen, and
+ONNX models replace rule-based logic behind the same recommend-and-confirm UX. Phase 1 is
+entirely about trust — trustworthy hardware, trustworthy sensor data, trustworthy silence
+detection. Nothing else is possible without it.
+
+## Phase Dependency Diagram
+
+```
+Phase 1: Hardware Foundation + Sensor Pipeline
+         |
+         |-- Sensor data flowing, quality-flagged, hub operational
+         |-- Hardware failsafes confirmed (NC valves, limit switches, relay boot)
+         |
+         v
+Phase 2: Actuator Control, Alerts, and Dashboard V1
+         |
+         |-- Recommend-and-confirm UX live (rule-based engine)
+         |-- Irrigation and coop controlled from dashboard
+         |-- 4+ weeks of GOOD-flagged sensor data accumulating
+         |
+         v
+Phase 3: Flock Management and Unified Dashboard
+         |             (can overlap with Phase 2 once coop node is stable)
+         |-- Egg production model, flock health alerts, unified overview screen
+         |
+         +----------------------------+
+                                      |
+                                      v
+                            Phase 4: ONNX AI Layer
+                                      |
+                                      |-- DATA MATURITY GATE:
+                                      |   4+ weeks of GOOD-flagged sensor data
+                                      |   required before model training begins
+                                      |
+                                      v
+                            Phase 5: Operational Hardening
+                                      |
+                                      |-- pH calibration workflows, push notifications,
+                                      |   data retention policies, ntfy integration
+```
+
+**Sequencing rationale:**
+- Phase 1 before everything: the sensor pipeline is the critical path for all other work.
+- Phase 2 before Phase 4: the recommend-and-confirm UX must exist and be validated with
+  rule-based logic before ML complexity is introduced behind it.
+- Phase 3 is largely independent of Phase 2 (different sensors, different data model) but
+  is sequenced after it for linear solo-developer execution; the coop node from Phase 2
+  is a prerequisite for flock sensor data.
+- Phase 4 has a hard data maturity gate — it cannot start until 4+ weeks of GOOD-quality
+  sensor data exists from Phase 1. Use the Phase 2/3 execution window to accumulate data.
+- Phase 5 is formalization: operational patterns (heartbeats, freshness, calibration) are
+  introduced incrementally in earlier phases; Phase 5 systematizes and completes them.
+
+---
+
+## Phases
+
+- [ ] **Phase 1: Hardware Foundation and Sensor Pipeline** - Trustworthy sensor data flowing from edge nodes to hub; all hardware failsafes confirmed
+- [ ] **Phase 2: Actuator Control, Alerts, and Dashboard V1** - Farmer monitors zones and flock, controls irrigation and coop, and acts on rule-based recommendations from a PWA dashboard
+- [ ] **Phase 3: Flock Management and Unified Dashboard** - Complete flock tracking and single unified overview screen covering all zones and flock
+- [ ] **Phase 4: ONNX AI Layer and Recommendation Engine** - ML-backed recommendations replace rule-based engine behind the existing recommend-and-confirm UX
+- [ ] **Phase 5: Operational Hardening** - pH calibration workflows, push notifications, data retention policies, and sensor calibration management
+
+---
+
+## Phase Details
+
+### Phase 1: Hardware Foundation and Sensor Pipeline
+
+**Goal**: Trustworthy sensor data flows from every edge node to the hub with quality flags, node health is visible on a minimal dashboard, and all hardware failsafes are confirmed before any actuator is connected.
+
+**Depends on**: Nothing (first phase)
+
+**Requirements**: INFRA-01, INFRA-02, INFRA-03, INFRA-04, INFRA-05, INFRA-06, INFRA-07, INFRA-08, INFRA-09, ZONE-01, ZONE-02, ZONE-03, ZONE-04, IRRIG-03, COOP-04, UI-04, UI-07
+
+**Hardware Procurement Checklist (gate before any software work):**
+- All irrigation solenoid valves confirmed normally-closed (NC) — not normally-open
+- Coop door actuator confirmed as linear actuator with physical limit switches at fully-open and fully-closed positions
+- Relay board(s) procured and cold-boot relay state tested BEFORE connecting any valve or actuator — if active-low, a GPIO initialization service must be written and confirmed working first
+- High-endurance SD cards (Samsung Pro Endurance or equivalent) in all Pi nodes
+- Hub hardware selected: Pi 5 8GB or x86_64 mini-PC; SSD strongly preferred over SD card for TimescaleDB I/O
+- Hub connects to router via Ethernet (not Wi-Fi)
+- Static IP assigned to hub; hub configured as NTP server for LAN
+
+**Success Criteria** (what must be TRUE):
+  1. Live soil moisture, pH, and temperature readings for every configured garden zone appear on the dashboard with freshness timestamps; readings older than 5 minutes are visually flagged as stale
+  2. Each sensor reading is stored in TimescaleDB with a quality flag (GOOD / SUSPECT / BAD); the hub's MQTT bridge applies calibration offsets before writing
+  3. If any edge node misses 3 consecutive 60-second heartbeats, the system health panel shows that node as offline within 90 seconds
+  4. If a sensor returns the same value for 30+ consecutive readings, that sensor is flagged as potentially stuck in the dashboard
+  5. The hub dashboard is accessible from any browser on the LAN via HTTPS; the URL is stable and does not require accepting a certificate warning on subsequent visits
+
+**Plans**: TBD
+
+Plans:
+- [ ] 01-01: Hub service stack setup — Docker Compose with Mosquitto, TimescaleDB, FastAPI skeleton, and Caddy for local HTTPS
+- [ ] 01-02: MQTT topic schema, per-node ACL credentials, and Mosquitto configuration finalized and documented
+- [ ] 01-03: Edge node sensor daemon — polling loop, local SQLite buffer, MQTT publish with reconnect and buffered flush on reconnect
+- [ ] 01-04: Edge node local rule engine — emergency irrigation shutoff and coop door fallback rules execute autonomously without hub
+- [ ] 01-05: Hub MQTT bridge — subscribes to all farm topics, applies quality flags and calibration offsets at ingestion, writes to TimescaleDB hypertable
+- [ ] 01-06: Heartbeat monitoring, static-reading detection, and minimal dashboard showing live sensor readings and node health panel
+
+**UI hint**: yes
+
+---
+
+### Phase 2: Actuator Control, Alerts, and Dashboard V1
+
+**Goal**: The farmer can monitor all garden zones, manually control irrigation and the coop door, and act on rule-based recommendations from the recommend-and-confirm queue — all from a mobile-friendly PWA. This phase delivers the product's core UX differentiator; the recommendation engine is rule-based for now, but the approve/reject flow is production-quality and sets the pattern for Phase 4.
+
+**Depends on**: Phase 1
+
+**Requirements**: ZONE-05, ZONE-06, IRRIG-01, IRRIG-02, IRRIG-04, IRRIG-05, IRRIG-06, COOP-01, COOP-02, COOP-03, COOP-05, COOP-06, COOP-07, AI-01, AI-02, AI-04, AI-05, UI-02, UI-03, UI-05, UI-06, NOTF-01, NOTF-02
+
+**Critical design note — recommend-and-confirm UX:**
+This is the product's defining feature. The recommendation queue must show: action description, supporting sensor values with context, and explanation of why the action is recommended. Approve sends a command through the hub to the edge node actuator and waits for the ack. Reject starts the back-off window for that recommendation type. The UX must be fast enough to use while standing in the yard. Design this flow before implementing it.
+
+**Success Criteria** (what must be TRUE):
+  1. A farmer can open or close an irrigation valve for any zone from the dashboard; the command routes hub → edge node → relay and the zone's irrigation status updates within 5 seconds; the hub prevents opening a second zone while one is already open
+  2. A recommendation to irrigate zone X appears in the recommendation queue when zone X's VWC drops below its configured low threshold; the farmer can approve (triggering the sensor-feedback irrigation loop) or reject (starting a configurable back-off window); duplicate recommendations for the same zone and type are suppressed while one is pending
+  3. The coop door opens at calculated sunrise and closes at calculated sunset based on configured lat/long; the dashboard shows door state as open / closed / moving / stuck; a stuck-door alert fires if the expected limit switch is not reached within 60 seconds of a command
+  4. A P0/P1 alert bar is visible on every screen; low feed, low water, stuck door, and node-offline alerts appear there with debounce and hysteresis — the same alert does not fire repeatedly for the same sustained condition
+  5. The dashboard installs as a PWA on iOS and Android and is usable on a phone screen in the yard; sensor data shown is always fresh or clearly flagged as stale
+
+**Plans**: TBD
+
+Plans:
+- [ ] 02-01: Irrigation control — manual valve commands, single-zone-at-a-time invariant, hub → edge node → relay command routing with ack confirmation
+- [ ] 02-02: Sensor-feedback irrigation loop — threshold-based recommendation generation, approve triggers VWC-targeted irrigation, cool-down window after completion
+- [ ] 02-03: Coop door automation — NOAA astronomical clock schedule, configurable offsets, hard time limits, limit switch confirmation loop, stuck-door alert
+- [ ] 02-04: Recommend-and-confirm UX — recommendation queue component with action description, supporting sensor values, approve/reject controls, deduplication, and rejection back-off
+- [ ] 02-05: Alert bar, debounce/hysteresis system, zone health composite score (green/yellow/red), and 7-day/30-day sensor history charts
+- [ ] 02-06: PWA setup — SvelteKit service worker, offline shell, mobile-first responsive layout, feed and water level display
+
+**UI hint**: yes
+
+---
+
+### Phase 3: Flock Management and Unified Dashboard
+
+**Goal**: The flock's health story is complete — egg production is tracked against a breed/age/daylight model, feed consumption is derived from load cell data, and production drops trigger alerts. A single overview screen surfaces all garden zones and the flock summary together.
+
+**Depends on**: Phase 2
+
+**Requirements**: FLOCK-01, FLOCK-02, FLOCK-03, FLOCK-04, FLOCK-05, FLOCK-06, UI-01
+
+**Success Criteria** (what must be TRUE):
+  1. A farmer can enter the day's egg count from the dashboard; the entry is stored and the 30-day production trend chart updates immediately showing actual vs. expected production
+  2. The expected production model calculates daily expected egg count from flock size, breed lay rate, age factor, and daylight hours; the model values are visible and configurable via flock configuration
+  3. When the 3-day rolling average of egg production falls below 75% of expected, a production drop alert appears in the persistent alert bar
+  4. Feed consumption rate is derived from daily load cell weight delta and displayed on the dashboard; sudden drops in consumption are visible as a trend signal
+  5. The overview screen shows all garden zones (composite health score, current moisture) and flock summary (door status, egg count today, production trend indicator) on one screen without scrolling on a tablet
+
+**Plans**: TBD
+
+Plans:
+- [ ] 03-01: Flock configuration — breed, hatch date, flock size, supplemental lighting flag; breed lay rate table and age decline curve
+- [ ] 03-02: Egg count entry form, daily storage, expected production model (flock size × lay rate × age factor × daylight factor)
+- [ ] 03-03: Production trend chart (actual vs. expected, 30 days), production drop alert (3-day rolling average below 75% threshold)
+- [ ] 03-04: Feed consumption rate display from load cell weight delta; integration with flock health alert signals
+- [ ] 03-05: Unified overview screen — all garden zones and flock summary in a single view
+
+**UI hint**: yes
+
+---
+
+### Phase 4: ONNX AI Layer and Recommendation Engine
+
+**Goal**: ML-backed ONNX models replace the rule-based recommendation engine for zone health scoring, irrigation schedule optimization, and flock production anomaly detection — behind the exact same recommend-and-confirm UX delivered in Phase 2. A model maturity indicator manages farmer expectations during the cold-start period.
+
+**Depends on**: Phase 2 (recommend-and-confirm UX), Phase 3 (flock data model)
+
+**DATA MATURITY GATE**: Phase 4 work cannot begin until at least 4 weeks of GOOD-quality-flagged sensor data exists in TimescaleDB from Phase 1. Check the quality flag distribution before starting. If the ratio of GOOD-flagged readings is below 80% for any zone, investigate sensor calibration before training. AI-06 (training only on GOOD-flagged data) is non-negotiable.
+
+**AI stack confirmation**: ONNX Runtime is the primary inference engine. Ollama/LLMs are explicitly wrong for sensor classification and anomaly detection — they are too slow, too memory-hungry, and produce unstructured output that must be re-parsed. If natural-language recommendation summaries are desired later, Ollama is optional and must be confirmed to fit in hub RAM headroom after all other services are running.
+
+**Requirements**: AI-03, AI-06, AI-07
+
+**Success Criteria** (what must be TRUE):
+  1. ONNX Runtime models generate irrigation recommendations, zone health scores, and flock anomaly signals; recommendations appear in the existing recommendation queue with the same approve/reject UX as Phase 2 rule-based recommendations
+  2. The inference service uses only GOOD-quality-flagged sensor data as model inputs; SUSPECT and BAD readings are excluded from both training datasets and live inference feature windows
+  3. Scheduled inference runs automatically: zone health every 15 minutes, irrigation every 1 hour, flock health every 30 minutes; a threshold crossing in any zone triggers immediate re-inference for that zone
+  4. The model maturity indicator in the UI shows recommendation count and approval/rejection rate per recommendation type; during cold start it displays a clear message that the model is still learning
+
+**Plans**: TBD
+
+Plans:
+- [ ] 04-01: Feature aggregation service — assembles recent sensor windows per zone from TimescaleDB for ONNX inference input; GOOD-flag filter enforced
+- [ ] 04-02: ONNX model selection spike — benchmark random forest, gradient boosted, and small neural network on actual hub hardware at operating temperature; select architecture before full implementation
+- [ ] 04-03: Zone health and irrigation ONNX models — training pipeline (offline, on development machine), model export to ONNX, hot-reload via filesystem watch on hub
+- [ ] 04-04: Flock production anomaly ONNX model — training pipeline, export, integration with flock health alert signals
+- [ ] 04-05: Inference scheduler (APScheduler), event-triggered re-inference on threshold crossing, model maturity indicator UI component
+
+**UI hint**: yes
+
+---
+
+### Phase 5: Operational Hardening
+
+**Goal**: The system survives daily use over months — pH sensors are calibrated on schedule, sensor calibration offsets are managed from the hub, push notifications reach the farmer's phone via self-hosted ntfy, and data retention policies prevent unbounded storage growth.
+
+**Depends on**: Phase 2 (alert infrastructure), Phase 3 (flock data)
+
+**Requirements**: ZONE-07, NOTF-03
+
+**Success Criteria** (what must be TRUE):
+  1. The dashboard shows a pH calibration due-date reminder when any pH sensor's last calibration date is older than 2 weeks; the farmer can record a new calibration and the updated offset is applied to subsequent readings at ingestion
+  2. Self-hosted ntfy integration (if configured) delivers push notifications to iOS and Android for the same events that trigger in-app alerts; in-app alerts remain the baseline and ntfy is additive
+  3. Raw sensor data older than 90 days is automatically purged; hourly rollup aggregates are retained for 2 years; the dashboard reflects actual storage usage
+
+**Plans**: TBD
+
+Plans:
+- [ ] 05-01: pH calibration workflow — calibration date tracking per sensor, due-date reminder UI, calibration offset storage and application at ingestion
+- [ ] 05-02: Sensor calibration management — per-sensor dry/wet values and temperature coefficient stored on hub, push-to-node on config update
+- [ ] 05-03: Data retention policies — raw data 90-day purge, hourly rollup 2-year retention, TimescaleDB retention policy configuration
+- [ ] 05-04: Self-hosted ntfy push notification integration — optional configuration, iOS/Android delivery, parity with in-app alert event list
+
+**UI hint**: yes
+
+---
+
+## Progress
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 1. Hardware Foundation and Sensor Pipeline | 0/6 | Not started | - |
+| 2. Actuator Control, Alerts, and Dashboard V1 | 0/6 | Not started | - |
+| 3. Flock Management and Unified Dashboard | 0/5 | Not started | - |
+| 4. ONNX AI Layer and Recommendation Engine | 0/5 | Not started | - |
+| 5. Operational Hardening | 0/4 | Not started | - |
+
+---
+
+## Coverage
+
+**v1 requirements: 52 total, 52 mapped, 0 orphaned.**
+
+| Phase | Requirements |
+|-------|-------------|
+| Phase 1 | INFRA-01, INFRA-02, INFRA-03, INFRA-04, INFRA-05, INFRA-06, INFRA-07, INFRA-08, INFRA-09, ZONE-01, ZONE-02, ZONE-03, ZONE-04, IRRIG-03, COOP-04, UI-04, UI-07 |
+| Phase 2 | ZONE-05, ZONE-06, IRRIG-01, IRRIG-02, IRRIG-04, IRRIG-05, IRRIG-06, COOP-01, COOP-02, COOP-03, COOP-05, COOP-06, COOP-07, AI-01, AI-02, AI-04, AI-05, UI-02, UI-03, UI-05, UI-06, NOTF-01, NOTF-02 |
+| Phase 3 | FLOCK-01, FLOCK-02, FLOCK-03, FLOCK-04, FLOCK-05, FLOCK-06, UI-01 |
+| Phase 4 | AI-03, AI-06, AI-07 |
+| Phase 5 | ZONE-07, NOTF-03 |
+
+---
+
+*Roadmap created: 2026-04-01*
+*Granularity: standard*
