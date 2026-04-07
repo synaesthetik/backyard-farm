@@ -1,0 +1,32 @@
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/600.css';
+
+:root {
+  --color-bg: #0f1117;
+  --color-surface: #1c1f2b;
+  --color-accent: #4ade80;
+  --color-stale: #f59e0b;
+  --color-stuck: #f97316;
+  --color-offline: #ef4444;
+  --color-muted: #6b7280;
+  --color-border: #2d3149;
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
