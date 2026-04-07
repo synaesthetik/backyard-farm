@@ -1,0 +1,4 @@
+paho-mqtt==2.1.0
+w1thermsensor==2.3.0
+adafruit-circuitpython-ads1x15==3.0.3
+python-dotenv
