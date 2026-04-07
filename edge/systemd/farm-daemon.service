@@ -1,0 +1,17 @@
+[Unit]
+Description=Farm Sensor Daemon
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/farm/daemon
+EnvironmentFile=/home/pi/farm/daemon/.env
+ExecStart=/usr/bin/python3 main.py
+Restart=always
+RestartSec=10
+WatchdogSec=300
+
+[Install]
+WantedBy=multi-user.target
