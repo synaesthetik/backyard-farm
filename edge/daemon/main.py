@@ -16,6 +16,7 @@ import paho.mqtt.client as mqtt
 from dotenv import load_dotenv
 
 from buffer import ReadingBuffer
+from rules import LocalRuleEngine, execute_action
 from sensors import DS18B20Driver, ADS1115PHDriver, MoisturePlaceholder
 
 load_dotenv()
@@ -35,6 +36,9 @@ POLL_INTERVAL_SECONDS = int(os.getenv("POLL_INTERVAL_SECONDS", "60"))
 BUFFER_DB = os.getenv("BUFFER_DB", "readings.db")
 HEARTBEAT_INTERVAL_SECONDS = int(os.getenv("HEARTBEAT_INTERVAL_SECONDS", "60"))
 FLUSH_BATCH_SIZE = int(os.getenv("FLUSH_BATCH_SIZE", "50"))
+NODE_TYPE = os.getenv("NODE_TYPE", "zone")  # "zone" or "coop"
+EMERGENCY_MOISTURE_SHUTOFF_VWC = float(os.getenv("EMERGENCY_MOISTURE_SHUTOFF_VWC", "95"))
+COOP_HARD_CLOSE_HOUR = int(os.getenv("COOP_HARD_CLOSE_HOUR", "21"))
 
 # State
 running = True
@@ -108,12 +112,14 @@ def on_disconnect(client, userdata, flags, rc, properties=None):
 
 
 def poll_sensors(sensors, buffer, client):
-    """Poll all sensors and buffer/publish readings."""
+    """Poll all sensors, buffer/publish readings, and return latest values for rule evaluation."""
     ts = make_timestamp()
+    latest_readings = {}
 
     for sensor in sensors:
         value = sensor.read()
         if value is not None:
+            latest_readings[sensor.sensor_type()] = value
             topic = f"farm/{NODE_ID}/sensors/{sensor.sensor_type()}"
             payload = build_sensor_payload(NODE_ID, sensor.sensor_type(), value, ts)
             payload_json = json.dumps(payload)
@@ -125,6 +131,8 @@ def poll_sensors(sensors, buffer, client):
                 result = client.publish(topic, payload_json, qos=1)
                 if result.rc == mqtt.MQTT_ERR_SUCCESS:
                     buffer.mark_sent(row_id)
+
+    return latest_readings
 
 
 def main():
@@ -138,6 +146,13 @@ def main():
     ]
 
     buffer = ReadingBuffer(BUFFER_DB)
+
+    # Initialize local rule engine (INFRA-04)
+    rule_engine = LocalRuleEngine(
+        node_type=NODE_TYPE,
+        moisture_shutoff_vwc=EMERGENCY_MOISTURE_SHUTOFF_VWC,
+        coop_hard_close_hour=COOP_HARD_CLOSE_HOUR,
+    )
 
     # Initialize MQTT client (paho-mqtt 2.x API)
     client = mqtt.Client(
@@ -167,7 +182,12 @@ def main():
             # Poll sensors on interval
             if now - last_poll >= POLL_INTERVAL_SECONDS:
                 last_poll = now
-                poll_sensors(sensors, buffer, client)
+                latest_readings = poll_sensors(sensors, buffer, client)
+
+                # Evaluate local rules (INFRA-04)
+                rule_results = rule_engine.evaluate(latest_readings)
+                for result in rule_results:
+                    execute_action(result.action)
 
             # Heartbeat on interval
             if now - last_heartbeat >= HEARTBEAT_INTERVAL_SECONDS:
