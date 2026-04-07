@@ -1,0 +1,27 @@
+# Hub bridge — superuser access to all farm topics
+user hub-bridge
+topic readwrite farm/#
+
+# Zone nodes — write own sensors and heartbeat only
+user zone-01
+topic write farm/zone-01/sensors/#
+topic write farm/zone-01/heartbeat
+
+user zone-02
+topic write farm/zone-02/sensors/#
+topic write farm/zone-02/heartbeat
+
+user zone-03
+topic write farm/zone-03/sensors/#
+topic write farm/zone-03/heartbeat
+
+user zone-04
+topic write farm/zone-04/sensors/#
+topic write farm/zone-04/heartbeat
+
+# Coop node — write own sensors and heartbeat only
+user coop
+topic write farm/coop/sensors/#
+topic write farm/coop/heartbeat
+
+# Deny all other access by default (Mosquitto 2.x behavior)
