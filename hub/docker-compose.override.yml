@@ -1,0 +1,10 @@
+# Local dev override — removes linux/arm64 platform declarations so Docker uses
+# native Apple Silicon containers instead of QEMU emulation.
+# This file is auto-loaded by `docker compose up` — do not commit to production branches.
+services:
+  mosquitto:
+    platform: linux/amd64
+  timescaledb:
+    platform: linux/amd64
+  caddy:
+    platform: linux/amd64
