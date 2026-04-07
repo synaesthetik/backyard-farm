@@ -1,0 +1,157 @@
+<script lang="ts">
+  import { Droplets, FlaskConical, Thermometer, AlertTriangle } from 'lucide-svelte';
+  import SensorValue from './SensorValue.svelte';
+  import { isStale, formatElapsed } from './ws.svelte';
+  import type { ZoneState } from './types';
+
+  interface Props {
+    zone: ZoneState;
+  }
+
+  let { zone }: Props = $props();
+
+  const MAX_ZONE_NAME_CHARS = 20;
+
+  const latestReceivedAt = $derived((): string | null => {
+    const timestamps = [zone.moisture, zone.ph, zone.temperature]
+      .filter((r) => r !== null)
+      .map((r) => r!.received_at);
+    if (timestamps.length === 0) return null;
+    return timestamps.sort().at(-1) ?? null;
+  });
+
+  const zoneIsStale = $derived((): boolean => {
+    const ts = latestReceivedAt;
+    if (!ts) return false;
+    return isStale(ts);
+  });
+
+  const zoneIsStuck = $derived((): boolean => {
+    return [zone.moisture, zone.ph, zone.temperature].some((r) => r?.stuck === true);
+  });
+
+  function truncateName(name: string): string {
+    if (name.length > MAX_ZONE_NAME_CHARS) {
+      return name.slice(0, MAX_ZONE_NAME_CHARS) + '\u2026';
+    }
+    return name;
+  }
+</script>
+
+<section
+  class="zone-card"
+  class:stale={zoneIsStale}
+  aria-label={zone.zone_id}
+>
+  <h2 class="zone-name">{truncateName(zone.zone_id)}</h2>
+
+  <div class="freshness">
+    {#if latestReceivedAt === null}
+      <span class="freshness-no-data">No data received</span>
+    {:else if zoneIsStale}
+      <AlertTriangle size={14} color="#f59e0b" />
+      <span class="freshness-stale">STALE — last updated {formatElapsed(latestReceivedAt)}</span>
+    {:else}
+      <span class="freshness-current">Updated {formatElapsed(latestReceivedAt)}</span>
+    {/if}
+  </div>
+
+  <div class="sensors" class:dimmed={zoneIsStale}>
+    <SensorValue
+      icon={Droplets}
+      label="Moisture"
+      value={zone.moisture?.value ?? null}
+      unit="%"
+      quality={zone.moisture?.quality ?? null}
+    />
+    <SensorValue
+      icon={FlaskConical}
+      label="pH"
+      value={zone.ph?.value ?? null}
+      unit=""
+      quality={zone.ph?.quality ?? null}
+    />
+    <SensorValue
+      icon={Thermometer}
+      label="Temp"
+      value={zone.temperature?.value ?? null}
+      unit="°C"
+      quality={zone.temperature?.quality ?? null}
+    />
+  </div>
+
+  {#if zoneIsStuck}
+    <div class="stuck-indicator">
+      <AlertTriangle size={14} color="#f97316" />
+      <span>Stuck sensor detected</span>
+    </div>
+  {/if}
+</section>
+
+<style>
+  .zone-card {
+    background-color: #0f1117;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: var(--spacing-md);
+  }
+
+  .zone-card.stale {
+    border-color: #f59e0b;
+  }
+
+  .zone-name {
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .freshness {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.4;
+    margin-bottom: var(--spacing-md);
+    min-height: 20px;
+  }
+
+  .freshness-no-data {
+    color: var(--color-muted);
+  }
+
+  .freshness-stale {
+    color: #f59e0b;
+  }
+
+  .freshness-current {
+    color: var(--color-text-secondary);
+  }
+
+  .sensors {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sensors.dimmed :global(.sensor-value) {
+    opacity: 0.5;
+  }
+
+  .stuck-indicator {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    margin-top: var(--spacing-sm);
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid var(--color-border);
+    font-size: 14px;
+    font-weight: 400;
+    color: #f97316;
+  }
+</style>
