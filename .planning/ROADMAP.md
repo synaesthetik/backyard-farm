@@ -95,15 +95,15 @@ Phase 3: Flock Management and Unified Dashboard
   4. If a sensor returns the same value for 30+ consecutive readings, that sensor is flagged as potentially stuck in the dashboard
   5. The hub dashboard is accessible from any browser on the LAN via HTTPS; the URL is stable and does not require accepting a certificate warning on subsequent visits
 
-**Plans**: TBD
+**Plans**: 6 plans
 
 Plans:
-- [ ] 01-01: Hub service stack setup — Docker Compose with Mosquitto, TimescaleDB, FastAPI skeleton, and Caddy for local HTTPS
-- [ ] 01-02: MQTT topic schema, per-node ACL credentials, and Mosquitto configuration finalized and documented
-- [ ] 01-03: Edge node sensor daemon — polling loop, local SQLite buffer, MQTT publish with reconnect and buffered flush on reconnect
-- [ ] 01-04: Edge node local rule engine — emergency irrigation shutoff and coop door fallback rules execute autonomously without hub
-- [ ] 01-05: Hub MQTT bridge — subscribes to all farm topics, applies quality flags and calibration offsets at ingestion, writes to TimescaleDB hypertable
-- [ ] 01-06: Heartbeat monitoring, static-reading detection, and minimal dashboard showing live sensor readings and node health panel
+- [ ] 01-01-PLAN.md — Hub service stack (Docker Compose: Mosquitto, TimescaleDB, FastAPI, Caddy, SvelteKit scaffold)
+- [ ] 01-02-PLAN.md — MQTT topic schema, per-node ACL credentials, and Mosquitto configuration
+- [ ] 01-03-PLAN.md — Edge node sensor daemon (polling loop, SQLite buffer, MQTT publish with reconnect flush)
+- [ ] 01-04-PLAN.md — Edge node local rule engine (emergency irrigation shutoff, coop door hard-close)
+- [ ] 01-05-PLAN.md — Hub MQTT bridge (quality flags, calibration offsets, stuck detection, heartbeat tracking, WebSocket manager)
+- [ ] 01-06-PLAN.md — Minimal dashboard (zone cards, sensor values, quality badges, stale/stuck indicators, system health panel)
 
 **UI hint**: yes
 
@@ -229,7 +229,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Hardware Foundation and Sensor Pipeline | 0/6 | Not started | - |
+| 1. Hardware Foundation and Sensor Pipeline | 0/6 | Planned | - |
 | 2. Actuator Control, Alerts, and Dashboard V1 | 0/6 | Not started | - |
 | 3. Flock Management and Unified Dashboard | 0/5 | Not started | - |
 | 4. ONNX AI Layer and Recommendation Engine | 0/5 | Not started | - |
