@@ -2,7 +2,7 @@
   local_certs
 }
 
-https:// {
+https://:443 {
   tls internal
 
   handle /api/* {
