@@ -1,0 +1,4 @@
+aiomqtt==2.5.1
+asyncpg==0.31.0
+pydantic==2.12.5
+python-dotenv

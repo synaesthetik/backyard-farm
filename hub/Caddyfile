@@ -1,0 +1,19 @@
+{
+  local_certs
+}
+
+https:// {
+  tls internal
+
+  handle /api/* {
+    reverse_proxy api:8000
+  }
+
+  handle /ws/dashboard {
+    reverse_proxy dashboard:3000
+  }
+
+  handle {
+    reverse_proxy dashboard:3000
+  }
+}
