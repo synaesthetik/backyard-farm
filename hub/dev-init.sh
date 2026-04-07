@@ -7,27 +7,29 @@ HUB_DIR="$(cd "$(dirname "$0")" && pwd)"
 ENV_FILE="$HUB_DIR/../config/hub.env"
 PASSWD_FILE="$HUB_DIR/mosquitto/passwd"
 
-echo "==> Starting Mosquitto to generate credentials..."
-docker compose up -d mosquitto
-sleep 2
-
-echo "==> Generating MQTT credentials..."
-# Remove inside the container first — mosquitto_passwd -c refuses to overwrite an existing file
-docker compose exec mosquitto sh -c "rm -f /mosquitto/config/passwd"
+echo "==> Generating MQTT credentials (one-off container — no service needed)..."
+# Use a one-off container so Mosquitto service never sees an empty passwd file.
+# The service would crash-loop if started with an empty passwd file before credentials exist.
 rm -f "$PASSWD_FILE"
 
 BRIDGE_PASS=$(openssl rand -base64 16)
-docker compose exec mosquitto mosquitto_passwd -c -b /mosquitto/config/passwd hub-bridge "$BRIDGE_PASS"
+docker run --rm -v "$PASSWD_FILE:/mosquitto/config/passwd" \
+  eclipse-mosquitto:2.1.2-alpine \
+  mosquitto_passwd -c -b /mosquitto/config/passwd hub-bridge "$BRIDGE_PASS"
 echo "hub-bridge: $BRIDGE_PASS"
 
 for i in 01 02 03 04; do
   ZONE_PASS=$(openssl rand -base64 16)
-  docker compose exec mosquitto mosquitto_passwd -b /mosquitto/config/passwd "zone-$i" "$ZONE_PASS"
+  docker run --rm -v "$PASSWD_FILE:/mosquitto/config/passwd" \
+    eclipse-mosquitto:2.1.2-alpine \
+    mosquitto_passwd -b /mosquitto/config/passwd "zone-$i" "$ZONE_PASS"
   echo "zone-$i: $ZONE_PASS"
 done
 
 COOP_PASS=$(openssl rand -base64 16)
-docker compose exec mosquitto mosquitto_passwd -b /mosquitto/config/passwd coop "$COOP_PASS"
+docker run --rm -v "$PASSWD_FILE:/mosquitto/config/passwd" \
+  eclipse-mosquitto:2.1.2-alpine \
+  mosquitto_passwd -b /mosquitto/config/passwd coop "$COOP_PASS"
 echo "coop: $COOP_PASS"
 
 echo ""
