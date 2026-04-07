@@ -12,6 +12,8 @@ docker compose up -d mosquitto
 sleep 2
 
 echo "==> Generating MQTT credentials..."
+# Remove inside the container first — mosquitto_passwd -c refuses to overwrite an existing file
+docker compose exec mosquitto sh -c "rm -f /mosquitto/config/passwd"
 rm -f "$PASSWD_FILE"
 
 BRIDGE_PASS=$(openssl rand -base64 16)
