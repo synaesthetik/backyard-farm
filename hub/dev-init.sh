@@ -39,5 +39,29 @@ else
 fi
 
 echo ""
-echo "==> Done. Save the zone/coop passwords above for edge node .env files."
+echo "==> Trusting Caddy local CA on macOS..."
+echo "    Starting Caddy to generate its root cert (requires the full stack)..."
+docker compose up -d caddy
+echo "    Waiting for Caddy to generate CA cert..."
+for i in $(seq 1 15); do
+  if docker compose exec caddy test -f /data/caddy/pki/authorities/local/root.crt 2>/dev/null; then
+    break
+  fi
+  sleep 1
+done
+
+CERT_FILE="$HUB_DIR/caddy-local-root.crt"
+docker compose cp caddy:/data/caddy/pki/authorities/local/root.crt "$CERT_FILE"
+
+echo "    Installing root cert into macOS System keychain (sudo required)..."
+sudo security add-trusted-cert -d -r trustRoot \
+  -k /Library/Keychains/System.keychain "$CERT_FILE"
+rm -f "$CERT_FILE"
+
+echo ""
+echo "==> Done."
+echo "    MQTT credentials saved to config/hub.env."
+echo "    Caddy root CA trusted in macOS keychain — no cert warnings at https://localhost:8443"
+echo "    Save the zone/coop passwords above for edge node .env files."
+echo ""
 echo "    Run 'docker compose up' to start the full stack."
