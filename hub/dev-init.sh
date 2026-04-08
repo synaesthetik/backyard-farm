@@ -10,26 +10,26 @@ PASSWD_FILE="$HUB_DIR/mosquitto/passwd"
 echo "==> Generating MQTT credentials (one-off container — no service needed)..."
 # Use a one-off container so Mosquitto service never sees an empty passwd file.
 # The service would crash-loop if started with an empty passwd file before credentials exist.
-rm -rf "$PASSWD_FILE" && touch "$PASSWD_FILE"
+rm -rf "$PASSWD_FILE"
+
+# Mount the config directory (not the file) so mosquitto_passwd -c can create the file fresh.
+# File-level bind mounts require the source to exist; dir-level mounts do not.
+MQCONF_DIR="$HUB_DIR/mosquitto"
+MQ_IMAGE="eclipse-mosquitto:2.1.2-alpine"
+MQ_RUN="docker run --rm --platform linux/arm64 -v $MQCONF_DIR:/mosquitto/config $MQ_IMAGE"
 
 BRIDGE_PASS=$(openssl rand -base64 16)
-docker run --rm -v "$PASSWD_FILE:/mosquitto/config/passwd" \
-  eclipse-mosquitto:2.1.2-alpine \
-  mosquitto_passwd -c -b /mosquitto/config/passwd hub-bridge "$BRIDGE_PASS"
+$MQ_RUN mosquitto_passwd -c -b /mosquitto/config/passwd hub-bridge "$BRIDGE_PASS"
 echo "hub-bridge: $BRIDGE_PASS"
 
 for i in 01 02 03 04; do
   ZONE_PASS=$(openssl rand -base64 16)
-  docker run --rm -v "$PASSWD_FILE:/mosquitto/config/passwd" \
-    eclipse-mosquitto:2.1.2-alpine \
-    mosquitto_passwd -b /mosquitto/config/passwd "zone-$i" "$ZONE_PASS"
+  $MQ_RUN mosquitto_passwd -b /mosquitto/config/passwd "zone-$i" "$ZONE_PASS"
   echo "zone-$i: $ZONE_PASS"
 done
 
 COOP_PASS=$(openssl rand -base64 16)
-docker run --rm -v "$PASSWD_FILE:/mosquitto/config/passwd" \
-  eclipse-mosquitto:2.1.2-alpine \
-  mosquitto_passwd -b /mosquitto/config/passwd coop "$COOP_PASS"
+$MQ_RUN mosquitto_passwd -b /mosquitto/config/passwd coop "$COOP_PASS"
 echo "coop: $COOP_PASS"
 
 echo ""
