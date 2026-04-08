@@ -50,7 +50,7 @@ decisions:
 metrics:
   duration: ~10min
   completed: 2026-04-07
-  tasks_completed: 2
+  tasks_completed: 3
   tasks_total: 3
   files_created: 6
   files_modified: 1
@@ -64,7 +64,7 @@ metrics:
 
 - **Duration:** ~10 min
 - **Completed:** 2026-04-07
-- **Tasks:** 2/3 (Task 3 is human verification checkpoint — pending)
+- **Tasks:** 3/3
 - **Files created:** 6
 - **Files modified:** 1
 
@@ -83,6 +83,7 @@ metrics:
 
 1. **Task 1: TypeScript types and WebSocket reactive store** — `ef2c59b`
 2. **Task 2: Dashboard components and page layout** — `a4e9356`
+3. **Task 3: Visual verification checkpoint** — approved by user (dark theme, Farm Dashboard header, "No zones configured" empty state, "No nodes connected" system health panel all confirmed correct)
 
 ## Files Created/Modified
 
