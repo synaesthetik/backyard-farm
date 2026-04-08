@@ -10,7 +10,7 @@ PASSWD_FILE="$HUB_DIR/mosquitto/passwd"
 echo "==> Generating MQTT credentials (one-off container — no service needed)..."
 # Use a one-off container so Mosquitto service never sees an empty passwd file.
 # The service would crash-loop if started with an empty passwd file before credentials exist.
-rm -f "$PASSWD_FILE"
+rm -rf "$PASSWD_FILE" && touch "$PASSWD_FILE"
 
 BRIDGE_PASS=$(openssl rand -base64 16)
 docker run --rm -v "$PASSWD_FILE:/mosquitto/config/passwd" \
