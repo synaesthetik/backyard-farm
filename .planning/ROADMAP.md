@@ -95,15 +95,17 @@ Phase 3: Flock Management and Unified Dashboard
   4. If a sensor returns the same value for 30+ consecutive readings, that sensor is flagged as potentially stuck in the dashboard
   5. The hub dashboard is accessible from any browser on the LAN via HTTPS; the URL is stable and does not require accepting a certificate warning on subsequent visits
 
-**Plans**: 6 plans
+**Plans**: 8 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Hub service stack (Docker Compose: Mosquitto, TimescaleDB, FastAPI, Caddy, SvelteKit scaffold)
-- [ ] 01-02-PLAN.md — MQTT topic schema, per-node ACL credentials, and Mosquitto configuration
-- [ ] 01-03-PLAN.md — Edge node sensor daemon (polling loop, SQLite buffer, MQTT publish with reconnect flush)
-- [ ] 01-04-PLAN.md — Edge node local rule engine (emergency irrigation shutoff, coop door hard-close)
-- [ ] 01-05-PLAN.md — Hub MQTT bridge (quality flags, calibration offsets, stuck detection, heartbeat tracking, WebSocket manager)
-- [ ] 01-06-PLAN.md — Minimal dashboard (zone cards, sensor values, quality badges, stale/stuck indicators, system health panel)
+- [x] 01-01-PLAN.md — Hub service stack (Docker Compose: Mosquitto, TimescaleDB, FastAPI, Caddy, SvelteKit scaffold)
+- [x] 01-02-PLAN.md — MQTT topic schema, per-node ACL credentials, and Mosquitto configuration
+- [x] 01-03-PLAN.md — Edge node sensor daemon (polling loop, SQLite buffer, MQTT publish with reconnect flush)
+- [x] 01-04-PLAN.md — Edge node local rule engine (emergency irrigation shutoff, coop door hard-close)
+- [x] 01-05-PLAN.md — Hub MQTT bridge (quality flags, calibration offsets, stuck detection, heartbeat tracking, WebSocket manager)
+- [x] 01-06-PLAN.md — Minimal dashboard (zone cards, sensor values, quality badges, stale/stuck indicators, system health panel)
+- [ ] 01-07-PLAN.md — Gap closure: Fix WebSocket routing (Caddyfile /ws/dashboard -> api:8000)
+- [ ] 01-08-PLAN.md — Gap closure: Dashboard component unit tests (SensorValue, ZoneCard, NodeHealthRow)
 
 **UI hint**: yes
 
@@ -229,7 +231,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Hardware Foundation and Sensor Pipeline | 0/6 | Planned | - |
+| 1. Hardware Foundation and Sensor Pipeline | 6/8 | Gap closure | - |
 | 2. Actuator Control, Alerts, and Dashboard V1 | 0/6 | Not started | - |
 | 3. Flock Management and Unified Dashboard | 0/5 | Not started | - |
 | 4. ONNX AI Layer and Recommendation Engine | 0/5 | Not started | - |
