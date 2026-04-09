@@ -62,6 +62,9 @@ Exceptions (carry-forward from Phase 1, extended for Phase 2):
 - Alert bar rows: auto-height per row (no fixed height); min-height 40px per alert row.
 - Bottom safe area inset: max(16px, env(safe-area-inset-bottom)) applies to page bottom
   padding AND to bottom tab bar bottom padding.
+- Toast internal padding: 12px — intermediate value used to avoid visual compression at
+  8px (sm) while respecting the card-like density of the toast at 16px (md). Applies only
+  to the Toast component padding property.
 
 ---
 
@@ -83,8 +86,9 @@ Identical to Phase 1 — no new type scales introduced.
 - Italic reserved for zero/placeholder values only ("--").
 
 **New in Phase 2:**
-- Command button labels: Body role (16px/600). Action-verb only: "Open", "Close",
-  "Approve", "Reject". Do not use label role for primary action buttons.
+- Command button labels: Body role (16px/600). Action-verb + noun where context warrants
+  disambiguation (see Copywriting Contract for exact labels). Do not use label role for
+  primary action buttons.
 - Tab bar labels: Label role (14px/400). Single-word labels only: "Zones", "Coop",
   "Recommendations" (abbreviated to "Recs" if layout requires).
 - Alert bar text: Body role (16px/400). Truncated to single line per alert entry.
@@ -267,11 +271,12 @@ green). Used only for the Approve control on RecommendationCard.
 `--color-text-primary`. No red.
 
 **Open/Close valve variant:** Background `--color-surface`, border `--color-border`.
-"Open" and "Close" labeled buttons side by side. Active state (valve currently open):
-"Open" button has `--color-accent` border.
+"Open valve" and "Close valve" labeled buttons side by side. Active state (valve currently
+open): "Open valve" button has `--color-accent` border.
 
-**Open/Close door variant:** Same as valve variant. Door states: if `moving`, both buttons
-disabled with spinner on the active one.
+**Open/Close door variant:** Background `--color-surface`, border `--color-border`.
+"Open door" and "Close door" labeled buttons side by side. Door states: if `moving`, both
+buttons disabled with spinner on the active one.
 
 **Touch target:** 44px minimum height on all CommandButton instances.
 
@@ -288,8 +293,8 @@ Fixed-position error notification. Appears on command failure (D-16).
 Width: min(calc(100% - 32px), 400px). Centered horizontally. z-index: 30 (above everything).
 
 **Visual:** Background `--color-offline` (`#ef4444`), text `--color-text-primary`.
-Border-radius: 8px. Padding: 12px (between sm and md). Body role (16px/400).
-`XCircle` Lucide icon (16px) at left.
+Border-radius: 8px. Padding: 12px (named exception — see Spacing Scale exceptions). Body
+role (16px/400). `XCircle` Lucide icon (16px) at left.
 
 **Auto-dismiss:** 5 seconds after display. No dismiss button needed.
 
@@ -307,6 +312,11 @@ Displays one pending recommendation in the queue.
 
 **Layout:** Full-width card. Background `--color-surface`. Border: 1px solid `--color-border`.
 Border-radius: 8px. Internal padding: 16px (md).
+
+**Focal point:** The Approve button on the first pending RecommendationCard is the primary
+visual anchor for the `/recommendations` route. It is rendered in `--color-accent` (green
+on dark) to draw the eye immediately. When the queue is empty, the empty-state heading
+"No recommendations" serves as the focal point (centered, Heading role).
 
 **Contents (top to bottom):**
 1. Action description — Body role (16px/400), `--color-text-primary`. Example: "Irrigate Zone A"
@@ -338,7 +348,7 @@ The full content area of the `/coop` route.
    - Section heading: "Coop Door" (Heading, 20px/600)
    - State display: Large state label (Body, 16px/400, colored per door state mapping).
      Door icon: `DoorOpen` (open/moving) or `DoorClosed` (closed/stuck) Lucide, 24px.
-   - Control row: Open CommandButton + Close CommandButton side by side.
+   - Control row: "Open door" CommandButton + "Close door" CommandButton side by side.
 
 2. **Schedule display (read-only):**
    - Label: "Today's schedule" (Label, 14px/400, `--color-text-secondary`)
@@ -435,7 +445,7 @@ in Phase 2.
 | `/` | Zones | "Garden Zones" | ZoneCard grid + SystemHealthPanel (Phase 1 layout, extended) |
 | `/zones/[id]` | Zones | "{Zone name}" | Sensor readings, health score detail, irrigation controls, SensorChart × 3 |
 | `/coop` | Coop | "Coop" | CoopPanel |
-| `/recommendations` | Recs | "Recommendations" | RecommendationCard list |
+| `/recommendations` | Recs | "Recommendations" | RecommendationCard list; focal point is the Approve button on the first pending card |
 
 ---
 
@@ -474,8 +484,8 @@ Phase 2 adds these interaction states to the Phase 1 set.
 
 | State | Display |
 |-------|---------|
-| Valve closed | "Closed" label; Open button active, Close button disabled |
-| Valve open (irrigating) | "Irrigating" label with `--color-accent`; Close button active, Open button disabled; session timer visible |
+| Valve closed | "Closed" label; "Open valve" button active, "Close valve" button disabled |
+| Valve open (irrigating) | "Irrigating" label with `--color-accent`; "Close valve" button active, "Open valve" button disabled; session timer visible |
 | Valve moving/transitioning | Both buttons disabled; spinner |
 | Error | Error toast; both buttons re-enabled |
 
@@ -540,8 +550,12 @@ All Phase 1 copy elements carry forward unchanged. Phase 2 additions:
 | Recommendation — action | "Irrigate {Zone name}" | Verb + target; no "Please" or "You should" |
 | Recommendation — sensor context | "Moisture: {value}% VWC (target range: {low}–{high}%)" | Factual; no decoration |
 | Recommendation — explanation | "Below low threshold for {N}h" | Lowercase; factual |
-| Approve button | "Approve" | Verb; no checkmark in copy (icon is enough) |
-| Reject button | "Reject" | Verb; no X in copy |
+| Approve button | "Approve" | Single verb sufficient — button is always adjacent to the recommendation it acts on |
+| Reject button | "Reject" | Single verb sufficient — same adjacency reasoning as Approve |
+| Valve — open command button | "Open valve" | Verb + noun — ensures clarity when button label is the only visible context |
+| Valve — close command button | "Close valve" | Verb + noun |
+| Coop door — open command button | "Open door" | Verb + noun — distinguishes from valve open in shared layout contexts |
+| Coop door — close command button | "Close door" | Verb + noun |
 | Recommendation — empty heading | "No recommendations" | |
 | Recommendation — empty body | "Sensor thresholds are within range." | Period; no exclamation |
 | Alert — low moisture (single) | "Low moisture — {Zone name}" | |
@@ -558,8 +572,6 @@ All Phase 1 copy elements carry forward unchanged. Phase 2 additions:
 | Water section heading | "Water" | Single word |
 | Feed level | "{N}% full" | Numeric + word; not just the number |
 | Water level | "{N}% full" | Same pattern |
-| Valve — open command button | "Open" | Verb; no "valve" needed in context |
-| Valve — close command button | "Close" | Verb |
 | Irrigation — active status | "Irrigating" | Present participle; no "In progress" |
 | Irrigation — session timer | "{N}m {N}s" | Duration since valve opened |
 | Command error toast — generic | "Command failed — tap to retry" | No exclamation |
