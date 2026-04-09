@@ -129,15 +129,15 @@ This is the product's defining feature. The recommendation queue must show: acti
   4. A P0/P1 alert bar is visible on every screen; low feed, low water, stuck door, and node-offline alerts appear there with debounce and hysteresis — the same alert does not fire repeatedly for the same sustained condition
   5. The dashboard installs as a PWA on iOS and Android and is usable on a phone screen in the yard; sensor data shown is always fresh or clearly flagged as stale
 
-**Plans**: TBD
+**Plans**: 6 plans
 
 Plans:
-- [ ] 02-01: Irrigation control — manual valve commands, single-zone-at-a-time invariant, hub → edge node → relay command routing with ack confirmation
-- [ ] 02-02: Sensor-feedback irrigation loop — threshold-based recommendation generation, approve triggers VWC-targeted irrigation, cool-down window after completion
-- [ ] 02-03: Coop door automation — NOAA astronomical clock schedule, configurable offsets, hard time limits, limit switch confirmation loop, stuck-door alert
-- [ ] 02-04: Recommend-and-confirm UX — recommendation queue component with action description, supporting sensor values, approve/reject controls, deduplication, and rejection back-off
-- [ ] 02-05: Alert bar, debounce/hysteresis system, zone health composite score (green/yellow/red), and 7-day/30-day sensor history charts
-- [ ] 02-06: PWA setup — SvelteKit service worker, offline shell, mobile-first responsive layout, feed and water level display
+- [ ] 02-01-PLAN.md — Data contracts, actuator command endpoints, zone config store, MQTT ack flow, single-zone invariant
+- [ ] 02-02-PLAN.md — Rule engine, alert engine (debounce/hysteresis), zone health score, sensor-feedback irrigation loop
+- [ ] 02-03-PLAN.md — Coop scheduler (astral), bridge integration, history endpoint, recommendation approve/reject endpoints
+- [ ] 02-04-PLAN.md — Frontend foundation: routing, layout, TabBar, AlertBar, Toast, CommandButton, HealthBadge, WS store extension
+- [ ] 02-05-PLAN.md — Feature pages: zone detail (irrigation + charts), coop panel, recommendation queue (uPlot install)
+- [ ] 02-06-PLAN.md — PWA service worker, manifest, component tests, build verification, human sign-off
 
 **UI hint**: yes
 
@@ -231,8 +231,8 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Hardware Foundation and Sensor Pipeline | 6/8 | Gap closure | - |
-| 2. Actuator Control, Alerts, and Dashboard V1 | 0/6 | Not started | - |
+| 1. Hardware Foundation and Sensor Pipeline | 8/8 | Complete | - |
+| 2. Actuator Control, Alerts, and Dashboard V1 | 0/6 | Planned | - |
 | 3. Flock Management and Unified Dashboard | 0/5 | Not started | - |
 | 4. ONNX AI Layer and Recommendation Engine | 0/5 | Not started | - |
 | 5. Operational Hardening | 0/4 | Not started | - |
