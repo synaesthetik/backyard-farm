@@ -12,7 +12,7 @@
 
   const MAX_ZONE_NAME_CHARS = 20;
 
-  const latestReceivedAt = $derived((): string | null => {
+  const latestReceivedAt = $derived.by((): string | null => {
     const timestamps = [zone.moisture, zone.ph, zone.temperature]
       .filter((r) => r !== null)
       .map((r) => r!.received_at);
@@ -20,13 +20,13 @@
     return timestamps.sort().at(-1) ?? null;
   });
 
-  const zoneIsStale = $derived((): boolean => {
+  const zoneIsStale = $derived.by((): boolean => {
     const ts = latestReceivedAt;
     if (!ts) return false;
     return isStale(ts);
   });
 
-  const zoneIsStuck = $derived((): boolean => {
+  const zoneIsStuck = $derived.by((): boolean => {
     return [zone.moisture, zone.ph, zone.temperature].some((r) => r?.stuck === true);
   });
 
