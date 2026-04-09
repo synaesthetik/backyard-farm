@@ -94,6 +94,13 @@ Identical to Phase 1 — no new type scales introduced.
 - Alert bar text: Body role (16px/400). Truncated to single line per alert entry.
 - Toast text: Body role (16px/400).
 
+**Canvas exception — uPlot axis tick labels only:**
+uPlot axis tick labels are set to `size: 14` in the uPlot `axes` config (mapping to the
+Label role). Do NOT use a sub-14px value. Although 12px is a common default in charting
+libraries, the minimum font size constraint of 14px applies here — axis ticks are read
+while standing outdoors in variable light conditions and must remain legible. This is a
+uPlot canvas config value, not a CSS `font-size` declaration.
+
 ---
 
 ## Color
@@ -394,7 +401,8 @@ Toggle switches without page reload (D-32 — re-fetches from REST endpoint).
 **uPlot theme overrides:**
 - Grid lines: `--color-border` (`#2d3149`)
 - Axis labels: `--color-text-secondary` (`#94a3b8`)
-- Axis values (tick labels): `--color-text-secondary`, 12px
+- Axis values (tick labels): `--color-text-secondary`, `size: 14` in uPlot axes config
+  (Label role — see Typography canvas exception; do not use sub-14px values)
 - Series stroke width: 1.5px
 - No area fill under lines — stroke only
 - Cursor crosshair: `--color-muted` (`#6b7280`)
@@ -440,12 +448,12 @@ in Phase 2.
 
 ### Routes and Page Titles
 
-| Route | Tab bar active | Page heading | Notes |
-|-------|---------------|--------------|-------|
-| `/` | Zones | "Garden Zones" | ZoneCard grid + SystemHealthPanel (Phase 1 layout, extended) |
-| `/zones/[id]` | Zones | "{Zone name}" | Sensor readings, health score detail, irrigation controls, SensorChart × 3 |
-| `/coop` | Coop | "Coop" | CoopPanel |
-| `/recommendations` | Recs | "Recommendations" | RecommendationCard list; focal point is the Approve button on the first pending card |
+| Route | Tab bar active | Page heading | Focal point | Notes |
+|-------|---------------|--------------|-------------|-------|
+| `/` | Zones | "Garden Zones" | First ZoneCard's HealthBadge + zone name header row | ZoneCard grid + SystemHealthPanel (Phase 1 layout, extended) |
+| `/zones/[id]` | Zones | "{Zone name}" | The irrigation CommandButton row ("Open valve" / "Close valve") — rendered prominently at top of page content, above SensorChart sections | Sensor readings, health score detail, irrigation controls, SensorChart × 3 |
+| `/coop` | Coop | "Coop" | Coop door state label + CommandButton row — the door state is the first thing rendered after the section heading | CoopPanel |
+| `/recommendations` | Recs | "Recommendations" | Approve button on first pending RecommendationCard (rendered in `--color-accent`); when queue is empty, the "No recommendations" heading serves as focal point | RecommendationCard list |
 
 ---
 
