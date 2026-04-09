@@ -104,8 +104,8 @@ Plans:
 - [x] 01-04-PLAN.md — Edge node local rule engine (emergency irrigation shutoff, coop door hard-close)
 - [x] 01-05-PLAN.md — Hub MQTT bridge (quality flags, calibration offsets, stuck detection, heartbeat tracking, WebSocket manager)
 - [x] 01-06-PLAN.md — Minimal dashboard (zone cards, sensor values, quality badges, stale/stuck indicators, system health panel)
-- [ ] 01-07-PLAN.md — Gap closure: Fix WebSocket routing (Caddyfile /ws/dashboard -> api:8000)
-- [ ] 01-08-PLAN.md — Gap closure: Dashboard component unit tests (SensorValue, ZoneCard, NodeHealthRow)
+- [x] 01-07-PLAN.md — Gap closure: Fix WebSocket routing (Caddyfile /ws/dashboard -> api:8000)
+- [x] 01-08-PLAN.md — Gap closure: Dashboard component unit tests (SensorValue, ZoneCard, NodeHealthRow)
 
 **UI hint**: yes
 
