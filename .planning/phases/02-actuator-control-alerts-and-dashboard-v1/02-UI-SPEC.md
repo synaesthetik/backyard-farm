@@ -62,9 +62,7 @@ Exceptions (carry-forward from Phase 1, extended for Phase 2):
 - Alert bar rows: auto-height per row (no fixed height); min-height 40px per alert row.
 - Bottom safe area inset: max(16px, env(safe-area-inset-bottom)) applies to page bottom
   padding AND to bottom tab bar bottom padding.
-- Toast internal padding: 12px — intermediate value used to avoid visual compression at
-  8px (sm) while respecting the card-like density of the toast at 16px (md). Applies only
-  to the Toast component padding property.
+- Toast internal padding: 8px (sm) — standard small component density; toasts are short-lived overlays where tight padding keeps the component visually lightweight.
 
 ---
 
@@ -233,7 +231,7 @@ Row padding: 8px vertical (sm), 16px horizontal (md). Min-height: 40px.
 via SvelteKit `goto()` to the deep-link target for that alert type.
 
 **Grouping (D-12):** Multiple alerts of the same type render as one row with count badge.
-Badge: pill, 12px/400, `--color-border` background, `--color-text-primary` text. Example:
+Badge: pill, Label role (14px/400), `--color-border` background, `--color-text-primary` text. Example:
 "Low moisture — 3 zones".
 
 **Empty state:** AlertBar is not rendered when there are no active alerts (zero height).
@@ -248,7 +246,7 @@ This is not a visual empty state — the component simply unmounts.
 
 Compact health score indicator for ZoneCard header.
 
-**Layout:** Pill badge, inline. 12px/400. 4px horizontal padding (xs), 2px vertical.
+**Layout:** Pill badge, inline. Label role (14px/400). 4px horizontal padding (xs), 2px vertical.
 Background color per health score mapping. Text: "GOOD" / "WARN" / "CRIT".
 
 **Text color:** Dark (`--color-bg`, `#0f1117`) on green and yellow backgrounds.
@@ -300,7 +298,7 @@ Fixed-position error notification. Appears on command failure (D-16).
 Width: min(calc(100% - 32px), 400px). Centered horizontally. z-index: 30 (above everything).
 
 **Visual:** Background `--color-offline` (`#ef4444`), text `--color-text-primary`.
-Border-radius: 8px. Padding: 12px (named exception — see Spacing Scale exceptions). Body
+Border-radius: 8px. Padding: 8px (sm). Body
 role (16px/400). `XCircle` Lucide icon (16px) at left.
 
 **Auto-dismiss:** 5 seconds after display. No dismiss button needed.
