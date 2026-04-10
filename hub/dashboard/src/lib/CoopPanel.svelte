@@ -65,17 +65,21 @@
 </script>
 
 <div class="coop-panel">
-  <!-- Door status section -->
-  <section class="door-section">
-    <h2 class="section-heading">Coop Door</h2>
-    <div class="door-state" aria-live="polite" style="color: {doorColor}">
+  <!-- Door status hero -->
+  <section class="door-hero" class:door-open={doorState === 'open'} class:door-stuck={doorState === 'stuck'} class:door-moving={doorState === 'moving'}>
+    <div class="door-icon" style="color: {doorColor}">
       {#if doorState === 'open' || doorState === 'moving'}
-        <DoorOpen size={24} />
+        <DoorOpen size={48} />
       {:else}
-        <DoorClosed size={24} />
+        <DoorClosed size={48} />
       {/if}
-      <span class="door-label">{doorLabel}</span>
     </div>
+    <span class="door-status-label" aria-live="polite" style="color: {doorColor}">{doorLabel}</span>
+    {#if coopSchedule}
+      <span class="door-schedule-hint">
+        {doorState === 'open' ? `Closes at ${formatScheduleTime(coopSchedule.close_at)}` : `Opens at ${formatScheduleTime(coopSchedule.open_at)}`}
+      </span>
+    {/if}
     <div class="door-controls">
       <CommandButton
         label="Open door"
@@ -91,15 +95,6 @@
       />
     </div>
   </section>
-
-  <!-- Schedule display -->
-  {#if coopSchedule}
-    <section class="schedule-section">
-      <p class="schedule-label">Today's schedule</p>
-      <p class="schedule-time">Opens at {formatScheduleTime(coopSchedule.open_at)}</p>
-      <p class="schedule-time">Closes at {formatScheduleTime(coopSchedule.close_at)}</p>
-    </section>
-  {/if}
 
   <!-- Feed level section -->
   <section class="level-section">
@@ -153,38 +148,65 @@
     color: var(--color-text-primary);
   }
 
-  /* Door section */
-  .door-state {
+  /* Door hero */
+  .door-hero {
     display: flex;
+    flex-direction: column;
     align-items: center;
+    text-align: center;
+    padding: var(--spacing-lg) var(--spacing-md);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
     gap: var(--spacing-sm);
-    margin-bottom: var(--spacing-sm);
+    transition: border-color var(--transition-base), box-shadow var(--transition-base);
   }
 
-  .door-label {
-    font-size: 16px;
-    font-weight: 400;
-    line-height: 1.5;
+  .door-hero.door-open {
+    border-color: rgba(74, 222, 128, 0.3);
+    box-shadow: var(--shadow-card), 0 0 20px rgba(74, 222, 128, 0.08);
+  }
+
+  .door-hero.door-stuck {
+    border-color: rgba(239, 68, 68, 0.4);
+    box-shadow: var(--shadow-card), 0 0 20px rgba(239, 68, 68, 0.1);
+  }
+
+  .door-hero.door-moving {
+    border-color: rgba(245, 158, 11, 0.3);
+  }
+
+  .door-icon {
+    transition: transform var(--transition-base);
+  }
+
+  .door-hero.door-moving .door-icon {
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .door-status-label {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    line-height: 1.2;
+  }
+
+  .door-schedule-hint {
+    font-size: 14px;
+    color: var(--color-text-secondary);
+    font-style: italic;
   }
 
   .door-controls {
     display: flex;
     gap: var(--spacing-sm);
-  }
-
-  /* Schedule section */
-  .schedule-label {
-    font-size: 14px;
-    font-weight: 400;
-    color: var(--color-text-secondary);
-    margin-bottom: var(--spacing-xs);
-  }
-
-  .schedule-time {
-    font-size: 14px;
-    font-weight: 400;
-    color: var(--color-text-secondary);
-    line-height: 1.4;
+    margin-top: var(--spacing-sm);
   }
 
   /* Level section */
