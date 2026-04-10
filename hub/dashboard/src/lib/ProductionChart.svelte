@@ -116,14 +116,14 @@
 <div
   class="production-chart-wrap"
   bind:this={container}
-  aria-label="Egg production chart \u2014 actual vs expected, last 30 days"
+  aria-label="Egg production chart — actual vs expected, last 30 days"
 >
   {#if loading}
     <div class="skeleton" aria-busy="true"></div>
   {:else if insufficientData}
     <div class="insufficient-state">
       <div class="skeleton skeleton-bg"></div>
-      <p class="insufficient-msg">Not enough data yet \u2014 check back in a few days</p>
+      <p class="insufficient-msg">Not enough data yet — check back in a few days</p>
     </div>
   {/if}
 </div>

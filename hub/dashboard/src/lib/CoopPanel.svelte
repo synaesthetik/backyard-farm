@@ -142,7 +142,7 @@
 
   <!-- Production chart section -->
   <section class="production-section">
-    <h2 class="section-heading">Egg Production \u2014 30 Days</h2>
+    <h2 class="section-heading">Egg Production — 30 Days</h2>
     <ProductionChart />
   </section>
 
