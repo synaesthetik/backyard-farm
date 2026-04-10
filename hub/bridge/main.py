@@ -145,7 +145,8 @@ async def bridge_loop(db_pool: asyncpg.Pool):
             ) as client:
                 await client.subscribe("farm/+/sensors/#")
                 await client.subscribe("farm/+/heartbeat")
-                logger.info("Subscribed to farm/+/sensors/# and farm/+/heartbeat")
+                await client.subscribe("farm/+/ack/#")
+                logger.info("Subscribed to farm/+/sensors/#, farm/+/heartbeat, and farm/+/ack/#")
 
                 async for message in client.messages:
                     topic = str(message.topic)
@@ -155,6 +156,19 @@ async def bridge_loop(db_pool: asyncpg.Pool):
                         delta = await process_sensor_message(message.payload, db_pool)
                     elif topic.endswith("/heartbeat"):
                         delta = await process_heartbeat_message(message.payload, db_pool)
+                    elif "/ack/" in topic:
+                        delta = {
+                            "type": "actuator_ack",
+                            "command_id": topic.split("/")[-1],
+                        }
+                        # Also try to parse ack payload for status
+                        try:
+                            ack_data = json.loads(message.payload)
+                            delta["command_id"] = ack_data.get("command_id", delta["command_id"])
+                            delta["node_id"] = ack_data.get("node_id", "")
+                            delta["status"] = ack_data.get("status", "confirmed")
+                        except Exception:
+                            pass
 
                     if delta:
                         await notify_api(delta)

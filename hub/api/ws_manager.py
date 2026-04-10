@@ -16,6 +16,13 @@ class WebSocketManager:
         self.active_connections: list[WebSocket] = []
         self._zone_states: dict[str, dict] = {}
         self._node_states: dict[str, dict] = {}
+        self._alert_state: list[dict] = []
+        self._recommendation_queue: list[dict] = []
+        self._actuator_states: dict[str, str] = {}  # "irrigation:zone-01" -> "open"
+        self._zone_health_scores: dict[str, dict] = {}
+        self._feed_level: dict | None = None
+        self._water_level: dict | None = None
+        self._coop_schedule: dict | None = None
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
@@ -25,6 +32,13 @@ class WebSocketManager:
             "type": "snapshot",
             "zones": self._zone_states,
             "nodes": self._node_states,
+            "alerts": self._alert_state,
+            "recommendations": self._recommendation_queue,
+            "actuator_states": self._actuator_states,
+            "zone_health_scores": self._zone_health_scores,
+            "feed_level": self._feed_level,
+            "water_level": self._water_level,
+            "coop_schedule": self._coop_schedule,
         }
         await websocket.send_json(snapshot)
         logger.info("WebSocket client connected (%d total)", len(self.active_connections))
@@ -53,6 +67,27 @@ class WebSocketManager:
                 "uptime_seconds": delta["uptime_seconds"],
                 "last_seen": delta["ts"],
             }
+        elif delta.get("type") == "alert_state":
+            self._alert_state = delta.get("alerts", [])
+        elif delta.get("type") == "recommendation_queue":
+            self._recommendation_queue = delta.get("recommendations", [])
+        elif delta.get("type") == "actuator_state":
+            device = delta.get("device", "")
+            zone_id = delta.get("zone_id", "")
+            key = f"{device}:{zone_id}" if zone_id else device
+            self._actuator_states[key] = delta.get("state", "")
+        elif delta.get("type") == "zone_health_score":
+            zone_id = delta.get("zone_id", "")
+            self._zone_health_scores[zone_id] = {
+                "score": delta.get("score", "green"),
+                "contributing_sensors": delta.get("contributing_sensors", []),
+            }
+        elif delta.get("type") == "feed_level":
+            self._feed_level = {"percentage": delta["percentage"], "below_threshold": delta["below_threshold"]}
+        elif delta.get("type") == "water_level":
+            self._water_level = {"percentage": delta["percentage"], "below_threshold": delta["below_threshold"]}
+        elif delta.get("type") == "coop_schedule":
+            self._coop_schedule = delta.get("schedule")
 
     async def broadcast(self, delta: dict):
         """Broadcast delta to all connected WebSocket clients."""
