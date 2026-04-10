@@ -5,7 +5,7 @@
  * Stale logic runs client-side using received_at (INFRA-06).
  * Values are NOT cleared on disconnect — stale display is more useful than blank.
  */
-import type { ZoneState, NodeState, SensorReading, ConnectionStatus, WSMessage } from './types';
+import type { ZoneState, NodeState, SensorReading, ConnectionStatus, WSMessage, AlertEntry, Recommendation, HealthScore, CoopSchedule } from './types';
 
 const STALE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes (INFRA-06)
 const RECONNECT_BASE_MS = 1000;
@@ -15,6 +15,13 @@ class DashboardStore {
   zones = $state<Map<string, ZoneState>>(new Map());
   nodes = $state<Map<string, NodeState>>(new Map());
   connectionStatus = $state<ConnectionStatus>('disconnected');
+  alerts = $state<AlertEntry[]>([]);
+  recommendations = $state<Recommendation[]>([]);
+  actuatorStates = $state<Map<string, string>>(new Map());
+  zoneHealthScores = $state<Map<string, { score: HealthScore; contributing_sensors: string[] }>>(new Map());
+  feedLevel = $state<{ percentage: number; below_threshold: boolean } | null>(null);
+  waterLevel = $state<{ percentage: number; below_threshold: boolean } | null>(null);
+  coopSchedule = $state<CoopSchedule | null>(null);
 
   private ws: WebSocket | null = null;
   private reconnectDelay = RECONNECT_BASE_MS;
@@ -69,6 +76,22 @@ class DashboardStore {
         newNodes.set(nodeId, { node_id: nodeId, ...state });
       }
       this.nodes = newNodes;
+
+      this.alerts = msg.alerts ?? [];
+      this.recommendations = msg.recommendations ?? [];
+      const newActuators = new Map<string, string>();
+      for (const [key, state] of Object.entries(msg.actuator_states ?? {})) {
+        newActuators.set(key, state);
+      }
+      this.actuatorStates = newActuators;
+      const newScores = new Map<string, { score: HealthScore; contributing_sensors: string[] }>();
+      for (const [zoneId, data] of Object.entries(msg.zone_health_scores ?? {})) {
+        newScores.set(zoneId, data);
+      }
+      this.zoneHealthScores = newScores;
+      this.feedLevel = msg.feed_level ?? null;
+      this.waterLevel = msg.water_level ?? null;
+      this.coopSchedule = msg.coop_schedule ?? null;
     } else if (msg.type === 'sensor_update') {
       const existing = this.zones.get(msg.zone_id) ?? {
         zone_id: msg.zone_id,
@@ -99,6 +122,24 @@ class DashboardStore {
         last_seen: msg.ts,
       };
       this.nodes = new Map(this.nodes.set(msg.node_id, node));
+    } else if (msg.type === 'alert_state') {
+      this.alerts = msg.alerts;
+    } else if (msg.type === 'recommendation_queue') {
+      this.recommendations = msg.recommendations;
+    } else if (msg.type === 'actuator_state') {
+      const key = msg.zone_id ? `${msg.device}:${msg.zone_id}` : msg.device;
+      this.actuatorStates = new Map(this.actuatorStates.set(key, msg.state));
+    } else if (msg.type === 'zone_health_score') {
+      this.zoneHealthScores = new Map(this.zoneHealthScores.set(msg.zone_id, {
+        score: msg.score,
+        contributing_sensors: msg.contributing_sensors,
+      }));
+    } else if (msg.type === 'feed_level') {
+      this.feedLevel = { percentage: msg.percentage, below_threshold: msg.below_threshold };
+    } else if (msg.type === 'water_level') {
+      this.waterLevel = { percentage: msg.percentage, below_threshold: msg.below_threshold };
+    } else if (msg.type === 'coop_schedule') {
+      this.coopSchedule = msg.schedule;
     }
   }
 
