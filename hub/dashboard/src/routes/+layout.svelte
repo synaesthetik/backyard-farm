@@ -1,6 +1,6 @@
 <script>
   import '../app.css';
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount } from 'svelte';
   import { dashboardStore } from '$lib/ws.svelte';
   import TabBar from '$lib/TabBar.svelte';
   import AlertBar from '$lib/AlertBar.svelte';
@@ -19,11 +19,11 @@
   onMount(() => {
     dashboardStore.connect();
     window.addEventListener('farm:toast', handleToast);
-  });
 
-  onDestroy(() => {
-    dashboardStore.disconnect();
-    window.removeEventListener('farm:toast', handleToast);
+    return () => {
+      dashboardStore.disconnect();
+      window.removeEventListener('farm:toast', handleToast);
+    };
   });
 </script>
 
