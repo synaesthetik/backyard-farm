@@ -9,9 +9,10 @@
   interface Props {
     zone: ZoneState;
     healthScore?: HealthScore;
+    compact?: boolean;
   }
 
-  let { zone, healthScore }: Props = $props();
+  let { zone, healthScore, compact = false }: Props = $props();
 
   const MAX_ZONE_NAME_CHARS = 20;
 
@@ -48,64 +49,84 @@
   }
 </script>
 
-<section
-  class="zone-card"
-  class:stale={zoneIsStale}
-  aria-label={zone.zone_id}
-  role="button"
-  tabindex="0"
-  onclick={() => goto(`/zones/${zone.zone_id}`)}
-  onkeydown={handleKeydown}
->
-  <div class="zone-header">
-    <h2 class="zone-name">{truncateName(zone.zone_id)}</h2>
+{#if compact}
+  <section
+    class="zone-card zone-card-compact"
+    class:stale={zoneIsStale}
+    aria-label={zone.zone_id}
+    role="button"
+    tabindex="0"
+    onclick={() => goto(`/zones/${zone.zone_id}`)}
+    onkeydown={handleKeydown}
+  >
     {#if healthScore !== undefined}
       <HealthBadge score={healthScore} />
     {/if}
-  </div>
-
-  <div class="freshness">
-    {#if latestReceivedAt === null}
-      <span class="freshness-no-data">No data received</span>
-    {:else if zoneIsStale}
-      <AlertTriangle size={14} color="#f59e0b" />
-      <span class="freshness-stale">STALE — last updated {formatElapsed(latestReceivedAt)}</span>
-    {:else}
-      <span class="freshness-current">Updated {formatElapsed(latestReceivedAt)}</span>
-    {/if}
-  </div>
-
-  <div class="sensors" class:dimmed={zoneIsStale}>
-    <SensorValue
-      icon={Droplets}
-      label="Moisture"
-      value={zone.moisture?.value ?? null}
-      unit="%"
-      quality={zone.moisture?.quality ?? null}
-    />
-    <SensorValue
-      icon={FlaskConical}
-      label="pH"
-      value={zone.ph?.value ?? null}
-      unit=""
-      quality={zone.ph?.quality ?? null}
-    />
-    <SensorValue
-      icon={Thermometer}
-      label="Temp"
-      value={zone.temperature?.value ?? null}
-      unit="°C"
-      quality={zone.temperature?.quality ?? null}
-    />
-  </div>
-
-  {#if zoneIsStuck}
-    <div class="stuck-indicator">
-      <AlertTriangle size={14} color="#f97316" />
-      <span>Stuck sensor detected</span>
+    <span class="compact-name">{truncateName(zone.zone_id)}</span>
+    <span class="compact-moisture">
+      {zone.moisture !== null ? `${zone.moisture.value.toFixed(0)}%` : '--'}
+    </span>
+  </section>
+{:else}
+  <section
+    class="zone-card"
+    class:stale={zoneIsStale}
+    aria-label={zone.zone_id}
+    role="button"
+    tabindex="0"
+    onclick={() => goto(`/zones/${zone.zone_id}`)}
+    onkeydown={handleKeydown}
+  >
+    <div class="zone-header">
+      <h2 class="zone-name">{truncateName(zone.zone_id)}</h2>
+      {#if healthScore !== undefined}
+        <HealthBadge score={healthScore} />
+      {/if}
     </div>
-  {/if}
-</section>
+
+    <div class="freshness">
+      {#if latestReceivedAt === null}
+        <span class="freshness-no-data">No data received</span>
+      {:else if zoneIsStale}
+        <AlertTriangle size={14} color="#f59e0b" />
+        <span class="freshness-stale">STALE — last updated {formatElapsed(latestReceivedAt)}</span>
+      {:else}
+        <span class="freshness-current">Updated {formatElapsed(latestReceivedAt)}</span>
+      {/if}
+    </div>
+
+    <div class="sensors" class:dimmed={zoneIsStale}>
+      <SensorValue
+        icon={Droplets}
+        label="Moisture"
+        value={zone.moisture?.value ?? null}
+        unit="%"
+        quality={zone.moisture?.quality ?? null}
+      />
+      <SensorValue
+        icon={FlaskConical}
+        label="pH"
+        value={zone.ph?.value ?? null}
+        unit=""
+        quality={zone.ph?.quality ?? null}
+      />
+      <SensorValue
+        icon={Thermometer}
+        label="Temp"
+        value={zone.temperature?.value ?? null}
+        unit="°C"
+        quality={zone.temperature?.quality ?? null}
+      />
+    </div>
+
+    {#if zoneIsStuck}
+      <div class="stuck-indicator">
+        <AlertTriangle size={14} color="#f97316" />
+        <span>Stuck sensor detected</span>
+      </div>
+    {/if}
+  </section>
+{/if}
 
 <style>
   .zone-card {
@@ -192,5 +213,30 @@
     font-size: 14px;
     font-weight: 400;
     color: #f97316;
+  }
+
+  /* Compact variant */
+  .zone-card-compact {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+
+  .compact-name {
+    flex: 1;
+    font-size: 16px;
+    font-weight: 400;
+    color: var(--color-text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .compact-moisture {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--color-text-secondary);
+    flex-shrink: 0;
   }
 </style>

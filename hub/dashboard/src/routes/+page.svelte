@@ -1,56 +1,81 @@
 <script lang="ts">
   import { dashboardStore } from '$lib/ws.svelte';
   import ZoneCard from '$lib/ZoneCard.svelte';
-  import SystemHealthPanel from '$lib/SystemHealthPanel.svelte';
+  import FlockSummaryCard from '$lib/FlockSummaryCard.svelte';
 </script>
 
 <svelte:head>
-  <title>Farm Dashboard</title>
+  <title>Farm — Dashboard</title>
 </svelte:head>
 
-<section class="zones-section" aria-live="polite">
-  <h2 class="section-heading">Garden Zones</h2>
+<div class="home-layout">
+  <!-- FlockSummaryCard: top on mobile, right column on desktop -->
+  <div class="flock-col">
+    <FlockSummaryCard />
+  </div>
 
-  {#if dashboardStore.zones.size === 0}
-    <div class="empty-zones">
-      <p class="empty-heading">No zones configured</p>
-      <p class="empty-body">Add zones to start receiving sensor data.</p>
-    </div>
-  {:else}
-    <div class="zone-grid">
-      {#each [...dashboardStore.zones.values()] as zone (zone.zone_id)}
-        <ZoneCard
-          {zone}
-          healthScore={dashboardStore.zoneHealthScores.get(zone.zone_id)?.score}
-        />
-      {/each}
-    </div>
-  {/if}
-</section>
-
-<div class="section-gap"></div>
-
-<SystemHealthPanel nodes={dashboardStore.nodes} />
+  <!-- Zone cards: below flock on mobile, left column on desktop -->
+  <div class="zones-col">
+    {#if dashboardStore.zones.size === 0}
+      <div class="empty-zones">
+        <p class="empty-heading">No zones configured</p>
+        <p class="empty-body">Add a zone in settings to get started.</p>
+      </div>
+    {:else}
+      <div class="zone-grid">
+        {#each [...dashboardStore.zones.values()] as zone (zone.zone_id)}
+          <ZoneCard
+            {zone}
+            healthScore={dashboardStore.zoneHealthScores.get(zone.zone_id)?.score}
+            compact={true}
+          />
+        {/each}
+      </div>
+    {/if}
+  </div>
+</div>
 
 <style>
-  .section-heading {
-    font-size: 20px;
-    font-weight: 600;
-    line-height: 1.2;
-    color: var(--color-text-primary);
-    margin-bottom: var(--spacing-md);
+  /* Mobile: single column, flock summary first */
+  .home-layout {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .flock-col {
+    order: 1;
+  }
+
+  .zones-col {
+    order: 2;
+  }
+
+  /* Desktop (>= 640px): 2-column grid, zones left, flock right */
+  @media (min-width: 640px) {
+    .home-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto;
+      gap: var(--spacing-md);
+      align-items: start;
+    }
+
+    .zones-col {
+      order: 1;
+      grid-column: 1;
+    }
+
+    .flock-col {
+      order: 2;
+      grid-column: 2;
+    }
   }
 
   .zone-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: var(--spacing-lg);
-  }
-
-  @media (min-width: 640px) {
-    .zone-grid {
-      grid-template-columns: 1fr 1fr;
-    }
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
   }
 
   .empty-zones {
@@ -67,10 +92,6 @@
   .empty-body {
     font-size: 16px;
     font-weight: 400;
-    color: var(--color-text-secondary);
-  }
-
-  .section-gap {
-    height: var(--spacing-2xl);
+    color: var(--color-muted);
   }
 </style>
