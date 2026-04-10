@@ -38,13 +38,13 @@
     ></span>
   </header>
 
+  <TabBar />
+
   <AlertBar alerts={dashboardStore.alerts} />
 
   <main class="page-content">
     {@render children()}
   </main>
-
-  <TabBar />
   <Toast message={toastMessage} bind:visible={toastVisible} />
 </div>
 
@@ -84,6 +84,6 @@
   .page-content {
     flex: 1;
     padding: var(--spacing-md);
-    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px) + var(--spacing-md));
+    padding-bottom: var(--spacing-md);
   }
 </style>

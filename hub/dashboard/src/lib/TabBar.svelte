@@ -31,16 +31,9 @@
 
 <style>
   .tab-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: calc(56px + env(safe-area-inset-bottom, 0px));
-    padding-bottom: env(safe-area-inset-bottom, 0px);
     background: var(--color-surface);
-    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
     display: flex;
-    z-index: 20;
   }
   .tab {
     flex: 1;
