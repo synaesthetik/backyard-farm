@@ -175,14 +175,15 @@ Plans:
   4. Feed consumption rate is derived from daily load cell weight delta and displayed on the dashboard; sudden drops in consumption are visible as a trend signal
   5. The overview screen shows all garden zones (composite health score, current moisture) and flock summary (door status, egg count today, production trend indicator) on one screen without scrolling on a tablet
 
-**Plans**: 5 plans
+**Plans**: 6 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Backend: flock config store, egg estimator, production model, feed consumption, alert extensions, bridge integration, API router
+- [ ] 03-01-PLAN.md — Backend core: flock config store, egg estimator, production model, feed consumption, alert extensions, bridge integration
 - [ ] 03-02-PLAN.md — Frontend: TypeScript types, WS store extensions, TabBar 4-tab update, route restructure, Home tab, FlockSummaryCard, ZoneCard compact
 - [ ] 03-03-PLAN.md — CoopPanel extensions: egg count section, HenPresentIndicator, ProductionChart (uPlot), FeedSparkline (inline SVG), refresh button
 - [ ] 03-04-PLAN.md — FlockSettings form at /coop/settings: breed, hatch date, flock size, lighting, tare weight, hen threshold, egg weight
 - [ ] 03-05-PLAN.md — Human verification checkpoint: Home tab, Coop tab, flock settings, alerts, mobile layout
+- [ ] 03-06-PLAN.md — Flock REST API router (config CRUD, egg-history, refresh-eggs) and WebSocket snapshot extensions
 
 **UI hint**: yes
 
@@ -288,7 +289,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Hardware Foundation and Sensor Pipeline | 8/8 | Complete | - |
 | 2. Actuator Control, Alerts, and Dashboard V1 | 6/7 | Gap closure in progress | 2026-04-10 |
-| 3. Flock Management and Unified Dashboard | 0/5 | Planned | - |
+| 3. Flock Management and Unified Dashboard | 0/6 | Planned | - |
 | 4. ONNX AI Layer and Recommendation Engine | 0/5 | Not started | - |
 | 5. Operational Hardening | 0/4 | Not started | - |
 | 6. Hardware Shopping List and Wiring Diagrams | 0/0 | Not started | - |
