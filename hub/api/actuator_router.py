@@ -50,6 +50,53 @@ def resolve_ack(command_id: str):
         event.set()
 
 
+async def _send_irrigation_command(zone_id: str, action: str) -> str:
+    """Publish an irrigation MQTT command and wait for ack. Returns command_id.
+
+    Raises HTTPException on MQTT failure (502) or ack timeout (504).
+    Used by both the irrigate() endpoint and recommendation_router.approve_recommendation().
+    Updates active_irrigation_zone state when action is open or close.
+    """
+    global active_irrigation_zone
+
+    command_id = str(uuid.uuid4())
+    ack_event = asyncio.Event()
+    pending_acks[command_id] = ack_event
+
+    import aiomqtt
+    try:
+        async with aiomqtt.Client(
+            MQTT_HOST, port=MQTT_PORT, username=MQTT_USER, password=MQTT_PASS
+        ) as client:
+            payload = json.dumps({
+                "command_id": command_id,
+                "action": action,
+                "zone_id": zone_id,
+            })
+            await client.publish(
+                f"farm/{zone_id}/commands/irrigate", payload, qos=1
+            )
+    except Exception as e:
+        pending_acks.pop(command_id, None)
+        logger.error("MQTT publish failed: %s", e)
+        raise HTTPException(status_code=502, detail="Failed to send command to edge node")
+
+    try:
+        await asyncio.wait_for(ack_event.wait(), timeout=ACK_TIMEOUT_SECONDS)
+    except asyncio.TimeoutError:
+        pending_acks.pop(command_id, None)
+        raise HTTPException(status_code=504, detail="Command timeout - edge node did not ack")
+    finally:
+        pending_acks.pop(command_id, None)
+
+    if action == "open":
+        active_irrigation_zone = zone_id
+    elif action == "close" and active_irrigation_zone == zone_id:
+        active_irrigation_zone = None
+
+    return command_id
+
+
 @router.post("/api/actuators/irrigate", response_model=CommandResponse)
 async def irrigate(request: IrrigateRequest):
     global active_irrigation_zone
@@ -61,44 +108,7 @@ async def irrigate(request: IrrigateRequest):
             detail="Another zone is already irrigating."
         )
 
-    command_id = str(uuid.uuid4())
-    ack_event = asyncio.Event()
-    pending_acks[command_id] = ack_event
-
-    # Publish MQTT command
-    import aiomqtt
-    try:
-        async with aiomqtt.Client(
-            MQTT_HOST, port=MQTT_PORT, username=MQTT_USER, password=MQTT_PASS
-        ) as client:
-            payload = json.dumps({
-                "command_id": command_id,
-                "action": request.action,
-                "zone_id": request.zone_id,
-            })
-            await client.publish(
-                f"farm/{request.zone_id}/commands/irrigate", payload, qos=1
-            )
-    except Exception as e:
-        pending_acks.pop(command_id, None)
-        logger.error("MQTT publish failed: %s", e)
-        raise HTTPException(status_code=502, detail="Failed to send command to edge node")
-
-    # Wait for ack with 10s timeout (D-17 server-side timeout)
-    try:
-        await asyncio.wait_for(ack_event.wait(), timeout=ACK_TIMEOUT_SECONDS)
-    except asyncio.TimeoutError:
-        pending_acks.pop(command_id, None)
-        raise HTTPException(status_code=504, detail="Command timeout - edge node did not ack")
-    finally:
-        pending_acks.pop(command_id, None)
-
-    # Update irrigation state tracking
-    if request.action == "open":
-        active_irrigation_zone = request.zone_id
-    elif request.action == "close" and active_irrigation_zone == request.zone_id:
-        active_irrigation_zone = None
-
+    command_id = await _send_irrigation_command(request.zone_id, request.action)
     return CommandResponse(status="confirmed", command_id=command_id)
 
 
