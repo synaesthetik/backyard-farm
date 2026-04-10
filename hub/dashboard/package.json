@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@fontsource/inter": "^5.1.1",
+    "@fontsource/merriweather": "^5.2.11",
     "lucide-svelte": "^0.487.0",
     "uplot": "^1.6.32",
     "ws": "^8.18.2"
