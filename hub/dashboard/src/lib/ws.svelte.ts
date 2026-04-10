@@ -5,7 +5,7 @@
  * Stale logic runs client-side using received_at (INFRA-06).
  * Values are NOT cleared on disconnect — stale display is more useful than blank.
  */
-import type { ZoneState, NodeState, SensorReading, ConnectionStatus, WSMessage, AlertEntry, Recommendation, HealthScore, CoopSchedule } from './types';
+import type { ZoneState, NodeState, SensorReading, ConnectionStatus, WSMessage, AlertEntry, Recommendation, HealthScore, CoopSchedule, NestingBoxDelta, FeedConsumptionDelta } from './types';
 
 const STALE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes (INFRA-06)
 const RECONNECT_BASE_MS = 1000;
@@ -22,6 +22,8 @@ class DashboardStore {
   feedLevel = $state<{ percentage: number; below_threshold: boolean } | null>(null);
   waterLevel = $state<{ percentage: number; below_threshold: boolean } | null>(null);
   coopSchedule = $state<CoopSchedule | null>(null);
+  eggCount = $state<{ today: number; hen_present: boolean; raw_weight_grams: number | null; updated_at: string } | null>(null);
+  feedConsumption = $state<{ rate_grams_per_day: number; weekly: number[] } | null>(null);
 
   private ws: WebSocket | null = null;
   private reconnectDelay = RECONNECT_BASE_MS;
@@ -92,6 +94,8 @@ class DashboardStore {
       this.feedLevel = msg.feed_level ?? null;
       this.waterLevel = msg.water_level ?? null;
       this.coopSchedule = msg.coop_schedule ?? null;
+      this.eggCount = msg.egg_count ?? null;
+      this.feedConsumption = msg.feed_consumption ?? null;
     } else if (msg.type === 'sensor_update') {
       const existing = this.zones.get(msg.zone_id) ?? {
         zone_id: msg.zone_id,
@@ -140,6 +144,15 @@ class DashboardStore {
       this.waterLevel = { percentage: msg.percentage, below_threshold: msg.below_threshold };
     } else if (msg.type === 'coop_schedule') {
       this.coopSchedule = msg.schedule;
+    } else if (msg.type === 'nesting_box') {
+      this.eggCount = {
+        today: msg.estimated_count,
+        hen_present: msg.hen_present,
+        raw_weight_grams: msg.raw_weight_grams ?? null,
+        updated_at: msg.updated_at,
+      };
+    } else if (msg.type === 'feed_consumption') {
+      this.feedConsumption = { rate_grams_per_day: msg.rate_grams_per_day, weekly: msg.weekly };
     }
   }
 

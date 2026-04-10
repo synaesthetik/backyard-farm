@@ -1,15 +1,17 @@
 <script lang="ts">
   import { page } from '$app/stores';
-  import { Sprout, Home, Bell } from 'lucide-svelte';
+  import { LayoutDashboard, Sprout, Home, Bell } from 'lucide-svelte';
 
   const tabs = [
-    { path: '/', label: 'Zones', icon: Sprout, ariaLabel: 'Zones' },
+    { path: '/', label: 'Home', icon: LayoutDashboard, ariaLabel: 'Home' },
+    { path: '/zones', label: 'Zones', icon: Sprout, ariaLabel: 'Zones' },
     { path: '/coop', label: 'Coop', icon: Home, ariaLabel: 'Coop' },
     { path: '/recommendations', label: 'Recs', icon: Bell, ariaLabel: 'Recommendations' },
   ] as const;
 
   function isActive(tabPath: string, currentPath: string): boolean {
-    if (tabPath === '/') return currentPath === '/' || currentPath.startsWith('/zones');
+    if (tabPath === '/') return currentPath === '/';
+    if (tabPath === '/zones') return currentPath.startsWith('/zones');
     return currentPath.startsWith(tabPath);
   }
 </script>

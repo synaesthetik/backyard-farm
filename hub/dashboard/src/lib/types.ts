@@ -106,6 +106,8 @@ export interface DashboardSnapshot {
   feed_level: { percentage: number; below_threshold: boolean } | null;
   water_level: { percentage: number; below_threshold: boolean } | null;
   coop_schedule: CoopSchedule | null;
+  egg_count: { today: number; hen_present: boolean; raw_weight_grams: number | null; updated_at: string } | null;
+  feed_consumption: { rate_grams_per_day: number; weekly: number[] } | null;
 }
 
 export interface SensorDelta {
@@ -135,4 +137,35 @@ export type WSMessage =
   | ZoneHealthScoreDelta
   | FeedLevelDelta
   | WaterLevelDelta
-  | CoopScheduleDelta;
+  | CoopScheduleDelta
+  | NestingBoxDelta
+  | FeedConsumptionDelta;
+
+// Phase 3 types
+
+export interface FlockConfig {
+  breed: string;
+  lay_rate_override: number | null;
+  hatch_date: string;
+  flock_size: number;
+  supplemental_lighting: boolean;
+  hen_weight_threshold_grams: number;
+  egg_weight_grams: number;
+  tare_weight_grams: number;
+  latitude: number;
+  longitude: number;
+}
+
+export interface NestingBoxDelta {
+  type: 'nesting_box';
+  estimated_count: number;
+  hen_present: boolean;
+  raw_weight_grams: number;
+  updated_at: string;
+}
+
+export interface FeedConsumptionDelta {
+  type: 'feed_consumption';
+  rate_grams_per_day: number;
+  weekly: number[];
+}
