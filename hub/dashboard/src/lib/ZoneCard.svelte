@@ -1,14 +1,17 @@
 <script lang="ts">
+  import { goto } from '$app/navigation';
   import { Droplets, FlaskConical, Thermometer, AlertTriangle } from 'lucide-svelte';
   import SensorValue from './SensorValue.svelte';
+  import HealthBadge from './HealthBadge.svelte';
   import { isStale, formatElapsed } from './ws.svelte';
-  import type { ZoneState } from './types';
+  import type { ZoneState, HealthScore } from './types';
 
   interface Props {
     zone: ZoneState;
+    healthScore?: HealthScore;
   }
 
-  let { zone }: Props = $props();
+  let { zone, healthScore }: Props = $props();
 
   const MAX_ZONE_NAME_CHARS = 20;
 
@@ -36,14 +39,30 @@
     }
     return name;
   }
+
+  function handleKeydown(event: KeyboardEvent) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      goto(`/zones/${zone.zone_id}`);
+    }
+  }
 </script>
 
 <section
   class="zone-card"
   class:stale={zoneIsStale}
   aria-label={zone.zone_id}
+  role="button"
+  tabindex="0"
+  onclick={() => goto(`/zones/${zone.zone_id}`)}
+  onkeydown={handleKeydown}
 >
-  <h2 class="zone-name">{truncateName(zone.zone_id)}</h2>
+  <div class="zone-header">
+    <h2 class="zone-name">{truncateName(zone.zone_id)}</h2>
+    {#if healthScore !== undefined}
+      <HealthBadge score={healthScore} />
+    {/if}
+  </div>
 
   <div class="freshness">
     {#if latestReceivedAt === null}
@@ -94,10 +113,19 @@
     border: 1px solid var(--color-border);
     border-radius: 8px;
     padding: var(--spacing-md);
+    cursor: pointer;
   }
 
   .zone-card.stale {
     border-color: #f59e0b;
+  }
+
+  .zone-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
   }
 
   .zone-name {
@@ -108,7 +136,6 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-bottom: var(--spacing-xs);
   }
 
   .freshness {
