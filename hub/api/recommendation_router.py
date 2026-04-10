@@ -1,25 +1,37 @@
 """Recommendation management endpoints (AI-01 approve/reject, IRRIG-05).
 
-POST /api/recommendations/{id}/approve -- opens valve AND starts sensor-feedback irrigation loop
-POST /api/recommendations/{id}/reject -- starts back-off window
+POST /api/recommendations/{id}/approve -- proxies to bridge internal server
+POST /api/recommendations/{id}/reject  -- proxies to bridge internal server
+
+The rule_engine and irrigation_loop live in the bridge process (separate Docker
+container). This router proxies approve/reject HTTP calls to the bridge's
+internal HTTP server at BRIDGE_INTERNAL_URL (default: http://bridge:8001).
+The bridge owns the state mutation; this router owns the HTTP interface.
 """
 import logging
+import os
+import aiohttp
 from fastapi import APIRouter, HTTPException
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Injected by main.py at startup
+BRIDGE_INTERNAL_URL = os.getenv("BRIDGE_INTERNAL_URL", "http://bridge:8001")
+
+# Kept for interface compatibility — main.py still calls init() at startup.
+# _notify_callback, _ws_manager, _db_pool are still used; _rule_engine and
+# _irrigation_loop are unused (bridge owns them) but accepted to avoid main.py changes.
 _rule_engine = None
 _irrigation_loop = None
 _notify_callback = None
 _ws_manager = None
-_db_pool = None  # asyncpg pool for reading zone config
+_db_pool = None
 
 
 def init(rule_engine, irrigation_loop, notify_callback, ws_manager, db_pool):
-    """Called from main.py to inject dependencies."""
+    """Called from main.py to inject dependencies. rule_engine and irrigation_loop
+    are always None in the API process — the bridge owns these instances."""
     global _rule_engine, _irrigation_loop, _notify_callback, _ws_manager, _db_pool
     _rule_engine = rule_engine
     _irrigation_loop = irrigation_loop
@@ -28,82 +40,50 @@ def init(rule_engine, irrigation_loop, notify_callback, ws_manager, db_pool):
     _db_pool = db_pool
 
 
-async def _read_vwc_high_threshold(zone_id: str) -> float:
-    """Read vwc_high_threshold from zone_config table via asyncpg.
-
-    Falls back to 60.0 if no config found or DB unavailable.
-    This avoids hardcoding target_vwc -- the zone's configured
-    vwc_high_threshold is the correct irrigation target.
-    """
-    if not _db_pool:
-        logger.warning("No DB pool available, using default vwc_high_threshold=60.0")
-        return 60.0
-    try:
-        row = await _db_pool.fetchrow(
-            "SELECT vwc_high_threshold FROM zone_configs WHERE zone_id = $1",
-            zone_id
-        )
-        if row and row["vwc_high_threshold"] is not None:
-            return float(row["vwc_high_threshold"])
-    except Exception as e:
-        logger.warning("Failed to read zone config for %s: %s", zone_id, e)
-    return 60.0
-
-
 @router.post("/api/recommendations/{recommendation_id}/approve")
 async def approve_recommendation(recommendation_id: str):
-    """Approve a recommendation. For irrigation: opens the valve AND starts sensor-feedback loop."""
-    if not _rule_engine:
-        raise HTTPException(status_code=503, detail="Rule engine not initialized")
+    """Approve a recommendation. Proxies to bridge internal server.
 
-    zone_id = _rule_engine.approve(recommendation_id)
-    if zone_id is None:
-        raise HTTPException(status_code=404, detail="Recommendation not found or not pending")
-
-    # IRRIG-02: Check single-zone invariant
-    import actuator_router
-    if actuator_router.active_irrigation_zone is not None:
-        raise HTTPException(status_code=409, detail="Another zone is already irrigating.")
-
-    # Read the zone's vwc_high_threshold from DB as irrigation target
-    target_vwc = await _read_vwc_high_threshold(zone_id)
-
-    # IRRIG-05: FIRST open the valve by calling actuator_router's shared command function.
-    # This sends the MQTT command and waits for ack. The valve MUST actually open.
+    Bridge handles: rule_engine.approve(), valve open via MQTT, IrrigationLoop.start().
+    Returns 200 on success; forwards 404/409/502 from bridge on error.
+    """
+    url = f"{BRIDGE_INTERNAL_URL}/internal/recommendations/{recommendation_id}/approve"
     try:
-        from actuator_router import _send_irrigation_command
-        await _send_irrigation_command(zone_id, "open")
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, timeout=aiohttp.ClientTimeout(total=15)) as resp:
+                body = await resp.json()
+                if resp.status != 200:
+                    raise HTTPException(status_code=resp.status, detail=body.get("error", str(body)))
+                return body
+    except aiohttp.ClientConnectorError as e:
+        logger.error("Cannot reach bridge internal server at %s: %s", url, e)
+        raise HTTPException(status_code=503, detail="Bridge unreachable — recommendation service unavailable")
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error("Failed to open valve for %s: %s", zone_id, e)
-        raise HTTPException(status_code=502, detail=f"Failed to open valve: {e}")
-
-    # THEN start the sensor-feedback irrigation loop to monitor VWC
-    if _irrigation_loop:
-        _irrigation_loop.start(zone_id, target_vwc)
-
-    # Broadcast updated recommendation queue
-    if _notify_callback and _rule_engine:
-        await _notify_callback({
-            "type": "recommendation_queue",
-            "recommendations": _rule_engine.get_pending_recommendations(),
-        })
-
-    return {"status": "approved", "zone_id": zone_id, "target_vwc": target_vwc}
+        logger.error("Unexpected error proxying approve to bridge: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/api/recommendations/{recommendation_id}/reject")
 async def reject_recommendation(recommendation_id: str):
-    """Reject a recommendation. Starts back-off window (AI-05)."""
-    if not _rule_engine:
-        raise HTTPException(status_code=503, detail="Rule engine not initialized")
+    """Reject a recommendation. Proxies to bridge internal server.
 
-    _rule_engine.reject(recommendation_id)
-
-    # Broadcast updated recommendation queue
-    if _notify_callback and _rule_engine:
-        await _notify_callback({
-            "type": "recommendation_queue",
-            "recommendations": _rule_engine.get_pending_recommendations(),
-        })
-
-    return {"status": "rejected"}
+    Bridge handles: rule_engine.reject() which starts back-off window (AI-05).
+    """
+    url = f"{BRIDGE_INTERNAL_URL}/internal/recommendations/{recommendation_id}/reject"
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, timeout=aiohttp.ClientTimeout(total=5)) as resp:
+                body = await resp.json()
+                if resp.status != 200:
+                    raise HTTPException(status_code=resp.status, detail=body.get("error", str(body)))
+                return body
+    except aiohttp.ClientConnectorError as e:
+        logger.error("Cannot reach bridge internal server at %s: %s", url, e)
+        raise HTTPException(status_code=503, detail="Bridge unreachable — recommendation service unavailable")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Unexpected error proxying reject to bridge: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))

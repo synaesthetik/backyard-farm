@@ -36,11 +36,14 @@ services:
     env_file:
       - ../config/hub.env
     restart: unless-stopped
+    expose:
+      - "8001"
 
   api:
     build: ./api
     depends_on:
       - timescaledb
+      - bridge
     ports:
       - "127.0.0.1:8000:8000"
     env_file:
