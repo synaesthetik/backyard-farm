@@ -23,6 +23,9 @@ class WebSocketManager:
         self._feed_level: dict | None = None
         self._water_level: dict | None = None
         self._coop_schedule: dict | None = None
+        # Phase 3 flock state
+        self._egg_count: dict | None = None
+        self._feed_consumption: dict | None = None
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
@@ -39,6 +42,8 @@ class WebSocketManager:
             "feed_level": self._feed_level,
             "water_level": self._water_level,
             "coop_schedule": self._coop_schedule,
+            "egg_count": self._egg_count,
+            "feed_consumption": self._feed_consumption,
         }
         await websocket.send_json(snapshot)
         logger.info("WebSocket client connected (%d total)", len(self.active_connections))
@@ -88,6 +93,19 @@ class WebSocketManager:
             self._water_level = {"percentage": delta["percentage"], "below_threshold": delta["below_threshold"]}
         elif delta.get("type") == "coop_schedule":
             self._coop_schedule = delta.get("schedule")
+        elif delta.get("type") == "nesting_box":
+            import datetime
+            self._egg_count = {
+                "today": delta.get("today", datetime.date.today().isoformat()),
+                "hen_present": delta.get("hen_present"),
+                "raw_weight_grams": delta.get("raw_weight_grams"),
+                "updated_at": delta.get("updated_at"),
+            }
+        elif delta.get("type") == "feed_consumption":
+            self._feed_consumption = {
+                "rate_grams_per_day": delta.get("rate_grams_per_day"),
+                "weekly": delta.get("weekly"),
+            }
 
     async def broadcast(self, delta: dict):
         """Broadcast delta to all connected WebSocket clients."""

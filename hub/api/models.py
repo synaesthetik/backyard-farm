@@ -42,3 +42,9 @@ class NotifyPayload(BaseModel):
     percentage: Optional[float] = None
     below_threshold: Optional[bool] = None
     status: Optional[str] = None
+    # Phase 3 flock additions
+    estimated_count: Optional[int] = None
+    hen_present: Optional[bool] = None
+    raw_weight_grams: Optional[float] = None
+    rate_grams_per_day: Optional[float] = None
+    weekly: Optional[list] = None
