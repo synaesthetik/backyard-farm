@@ -76,7 +76,7 @@ Phase 3: Flock Management and Unified Dashboard
 ## Phases
 
 - [ ] **Phase 1: Hardware Foundation and Sensor Pipeline** - Trustworthy sensor data flowing from edge nodes to hub; all hardware failsafes confirmed
-- [ ] **Phase 2: Actuator Control, Alerts, and Dashboard V1** - Farmer monitors zones and flock, controls irrigation and coop, and acts on rule-based recommendations from a PWA dashboard
+- [x] **Phase 2: Actuator Control, Alerts, and Dashboard V1** - Farmer monitors zones and flock, controls irrigation and coop, and acts on rule-based recommendations from a PWA dashboard (completed 2026-04-10)
 - [ ] **Phase 3: Flock Management and Unified Dashboard** - Complete flock tracking and single unified overview screen covering all zones and flock
 - [ ] **Phase 4: ONNX AI Layer and Recommendation Engine** - ML-backed recommendations replace rule-based engine behind the existing recommend-and-confirm UX
 - [ ] **Phase 5: Operational Hardening** - pH calibration workflows, push notifications, data retention policies, and sensor calibration management
@@ -145,7 +145,7 @@ This is the product's defining feature. The recommendation queue must show: acti
   4. A P0/P1 alert bar is visible on every screen; low feed, low water, stuck door, and node-offline alerts appear there with debounce and hysteresis — the same alert does not fire repeatedly for the same sustained condition
   5. The dashboard installs as a PWA on iOS and Android and is usable on a phone screen in the yard; sensor data shown is always fresh or clearly flagged as stale
 
-**Plans**: 6 plans
+**Plans**: 7 plans
 
 Plans:
 - [x] 02-01-PLAN.md — Data contracts, actuator command endpoints, zone config store, MQTT ack flow, single-zone invariant
@@ -153,7 +153,8 @@ Plans:
 - [x] 02-03-PLAN.md — Coop scheduler (astral), bridge integration, history endpoint, recommendation approve/reject endpoints
 - [x] 02-04-PLAN.md — Frontend foundation: routing, layout, TabBar, AlertBar, Toast, CommandButton, HealthBadge, WS store extension
 - [x] 02-05-PLAN.md — Feature pages: zone detail (irrigation + charts), coop panel, recommendation queue (uPlot install)
-- [ ] 02-06-PLAN.md — PWA service worker, manifest, component tests, build verification, human sign-off
+- [x] 02-06-PLAN.md — PWA service worker, manifest, component tests, build verification, human sign-off
+- [ ] 02-07-PLAN.md — Gap closure: fix approve/reject 503 by proxying API to bridge internal HTTP server (AI-01, AI-05, IRRIG-05)
 
 **UI hint**: yes
 
@@ -286,7 +287,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Hardware Foundation and Sensor Pipeline | 8/8 | Complete | - |
-| 2. Actuator Control, Alerts, and Dashboard V1 | 5/6 | In Progress|  |
+| 2. Actuator Control, Alerts, and Dashboard V1 | 6/7 | Gap closure in progress | 2026-04-10 |
 | 3. Flock Management and Unified Dashboard | 0/5 | Not started | - |
 | 4. ONNX AI Layer and Recommendation Engine | 0/5 | Not started | - |
 | 5. Operational Hardening | 0/4 | Not started | - |
