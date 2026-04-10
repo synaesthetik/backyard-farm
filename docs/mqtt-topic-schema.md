@@ -21,6 +21,7 @@ farm/{node_id}/sensors/{sensor_type}
 | `farm/zone-01/sensors/temperature` | Temperature in Celsius |
 | `farm/coop/sensors/feed_weight` | Feed hopper weight in grams |
 | `farm/coop/sensors/water_level` | Water level sensor |
+| `farm/coop/sensors/nesting_box_weight` | Nesting box weight in grams (Phase 3) |
 
 ### Heartbeats
 
@@ -172,4 +173,4 @@ farm/{node_id}/ack/{command_id}
 | `zone-02` | Garden zone | moisture, ph, temperature |
 | `zone-03` | Garden zone | moisture, ph, temperature |
 | `zone-04` | Garden zone | moisture, ph, temperature |
-| `coop` | Chicken coop | feed_weight, water_level |
+| `coop` | Chicken coop | feed_weight, water_level, nesting_box_weight |

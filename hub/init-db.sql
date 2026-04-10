@@ -49,3 +49,34 @@ CREATE TABLE IF NOT EXISTS node_heartbeats (
 );
 
 SELECT create_hypertable('node_heartbeats', 'heartbeat_at');
+
+-- Phase 3: Flock management tables
+
+CREATE TABLE IF NOT EXISTS flock_config (
+  id                          SERIAL PRIMARY KEY,
+  breed                       TEXT NOT NULL,
+  lay_rate_override           DOUBLE PRECISION,
+  hatch_date                  DATE NOT NULL,
+  flock_size                  INTEGER NOT NULL,
+  supplemental_lighting       BOOLEAN NOT NULL DEFAULT FALSE,
+  hen_weight_threshold_grams  DOUBLE PRECISION NOT NULL DEFAULT 1500.0,
+  egg_weight_grams            DOUBLE PRECISION NOT NULL DEFAULT 60.0,
+  tare_weight_grams           DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+  latitude                    DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+  longitude                   DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+  updated_at                  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS egg_counts (
+  count_date        DATE PRIMARY KEY,
+  estimated_count   INTEGER NOT NULL,
+  raw_weight_grams  DOUBLE PRECISION,
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS feed_daily_consumption (
+  consumption_date   DATE PRIMARY KEY,
+  consumption_grams  DOUBLE PRECISION,
+  refill_detected    BOOLEAN NOT NULL DEFAULT FALSE,
+  updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
