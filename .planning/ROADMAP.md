@@ -2,10 +2,12 @@
 
 ## Overview
 
-Five phases transform an unboxed pile of hardware into a self-hosted farm dashboard where
+Seven phases transform an unboxed pile of hardware into a self-hosted farm dashboard where
 sensor data flows reliably from edge nodes to the hub, irrigation and coop automation run
 with farmer approval, flock health is tracked alongside garden zones on a single screen, and
-ONNX models replace rule-based logic behind the same recommend-and-confirm UX. Phase 1 is
+ONNX models replace rule-based logic behind the same recommend-and-confirm UX. The final two
+phases ensure anyone can build and use the system: a complete hardware shopping list with
+wiring diagrams, and an interactive tutorial with full reference documentation. Phase 1 is
 entirely about trust — trustworthy hardware, trustworthy sensor data, trustworthy silence
 detection. Nothing else is possible without it.
 
@@ -43,6 +45,18 @@ Phase 3: Flock Management and Unified Dashboard
                                       |
                                       |-- pH calibration workflows, push notifications,
                                       |   data retention policies, ntfy integration
+                                      |
+                                      v
+                            Phase 6: Hardware Shopping List and Wiring Diagrams
+                                      |
+                                      |-- Every component, connection, and pin documented
+                                      |-- Smoke test procedures for each subsystem
+                                      |
+                                      v
+                            Phase 7: Interactive Tutorial and User Documentation
+                                      |
+                                      |-- In-app tutorial, full reference docs,
+                                      |   troubleshooting guide, auto-built from source
 ```
 
 **Sequencing rationale:**
@@ -66,6 +80,8 @@ Phase 3: Flock Management and Unified Dashboard
 - [ ] **Phase 3: Flock Management and Unified Dashboard** - Complete flock tracking and single unified overview screen covering all zones and flock
 - [ ] **Phase 4: ONNX AI Layer and Recommendation Engine** - ML-backed recommendations replace rule-based engine behind the existing recommend-and-confirm UX
 - [ ] **Phase 5: Operational Hardening** - pH calibration workflows, push notifications, data retention policies, and sensor calibration management
+- [ ] **Phase 6: Hardware Shopping List and Wiring Diagrams** - Complete BOM, wiring diagrams for every connection, and smoke test procedures
+- [ ] **Phase 7: Interactive Tutorial and User Documentation** - In-app tutorial, full reference docs, and troubleshooting guide
 
 ---
 
@@ -132,11 +148,11 @@ This is the product's defining feature. The recommendation queue must show: acti
 **Plans**: 6 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Data contracts, actuator command endpoints, zone config store, MQTT ack flow, single-zone invariant
-- [ ] 02-02-PLAN.md — Rule engine, alert engine (debounce/hysteresis), zone health score, sensor-feedback irrigation loop
-- [ ] 02-03-PLAN.md — Coop scheduler (astral), bridge integration, history endpoint, recommendation approve/reject endpoints
-- [ ] 02-04-PLAN.md — Frontend foundation: routing, layout, TabBar, AlertBar, Toast, CommandButton, HealthBadge, WS store extension
-- [ ] 02-05-PLAN.md — Feature pages: zone detail (irrigation + charts), coop panel, recommendation queue (uPlot install)
+- [x] 02-01-PLAN.md — Data contracts, actuator command endpoints, zone config store, MQTT ack flow, single-zone invariant
+- [x] 02-02-PLAN.md — Rule engine, alert engine (debounce/hysteresis), zone health score, sensor-feedback irrigation loop
+- [x] 02-03-PLAN.md — Coop scheduler (astral), bridge integration, history endpoint, recommendation approve/reject endpoints
+- [x] 02-04-PLAN.md — Frontend foundation: routing, layout, TabBar, AlertBar, Toast, CommandButton, HealthBadge, WS store extension
+- [x] 02-05-PLAN.md — Feature pages: zone detail (irrigation + charts), coop panel, recommendation queue (uPlot install)
 - [ ] 02-06-PLAN.md — PWA service worker, manifest, component tests, build verification, human sign-off
 
 **UI hint**: yes
@@ -227,21 +243,61 @@ Plans:
 
 ---
 
+### Phase 6: Hardware Shopping List and Wiring Diagrams
+
+**Goal**: A farmer with zero electronics experience can purchase every component and wire the complete system by following the documentation alone. Every connection (GPIO, I2C, relay, solenoid, limit switch, load cell, power supply) is documented with pin numbers, wire colors, and physical diagrams. The shopping list is organized by subsystem with exact part numbers, quantities, and sourcing links.
+
+**Depends on**: Phase 5 (all hardware requirements finalized — no more components being added)
+
+**Requirements**: DOC-01, DOC-02
+
+**Success Criteria** (what must be TRUE):
+  1. A single shopping list document covers every component in the system organized by subsystem (hub, garden edge nodes, coop edge node, irrigation, power) with exact part numbers/SKUs, quantities, unit prices, and purchase links; a "total cost" summary is included
+  2. Wiring diagrams exist for every hardware connection in the system: GPIO pin assignments, I2C bus addresses, relay wiring (NC/NO/COM), solenoid valve wiring, limit switch wiring, load cell wiring, power supply distribution; diagrams use standard notation and are readable by a non-engineer
+  3. Each diagram includes a "smoke test" procedure — a simple verification step the farmer can perform after wiring each subsystem to confirm it works before moving on
+  4. The documentation cross-references the codebase: each hardware connection maps to the specific config file, GPIO constant, or I2C address used in the software
+
+**Plans**: TBD
+
+---
+
+### Phase 7: Interactive Tutorial and User Documentation
+
+**Goal**: A new user can set up, configure, and operate the complete platform by following the documentation and interactive tutorial. The tutorial walks through first boot, zone configuration, sensor verification, irrigation setup, coop automation, and daily operation. Full reference documentation covers every feature, configuration option, and troubleshooting scenario.
+
+**Depends on**: Phase 5 (all features complete), Phase 6 (hardware docs complete)
+
+**Requirements**: DOC-03, DOC-04, DOC-05
+
+**Success Criteria** (what must be TRUE):
+  1. An interactive tutorial embedded in the dashboard guides a new user through: first boot setup, adding a zone, verifying sensor data, running a manual irrigation, setting up coop automation, and approving a recommendation — each step validates completion before advancing
+  2. Full reference documentation covers every dashboard screen, every configuration option, every alert type, and every automation rule with screenshots and examples
+  3. A troubleshooting guide covers the 20 most common failure modes (sensor offline, stale data, stuck sensor, failed irrigation, stuck door, MQTT disconnection, etc.) with diagnostic steps and resolution
+  4. Documentation is versioned alongside the codebase and builds automatically (no separate publishing step)
+
+**Plans**: TBD
+
+**UI hint**: yes
+
+---
+
 ## Progress
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Hardware Foundation and Sensor Pipeline | 8/8 | Complete | - |
-| 2. Actuator Control, Alerts, and Dashboard V1 | 0/6 | Planned | - |
+| 2. Actuator Control, Alerts, and Dashboard V1 | 5/6 | In Progress|  |
 | 3. Flock Management and Unified Dashboard | 0/5 | Not started | - |
 | 4. ONNX AI Layer and Recommendation Engine | 0/5 | Not started | - |
 | 5. Operational Hardening | 0/4 | Not started | - |
+| 6. Hardware Shopping List and Wiring Diagrams | 0/0 | Not started | - |
+| 7. Interactive Tutorial and User Documentation | 0/0 | Not started | - |
 
 ---
 
 ## Coverage
 
-**v1 requirements: 52 total, 52 mapped, 0 orphaned.**
+**v1 requirements: 57 total, 57 mapped, 0 orphaned.**
 
 | Phase | Requirements |
 |-------|-------------|
@@ -250,6 +306,8 @@ Plans:
 | Phase 3 | FLOCK-01, FLOCK-02, FLOCK-03, FLOCK-04, FLOCK-05, FLOCK-06, UI-01 |
 | Phase 4 | AI-03, AI-06, AI-07 |
 | Phase 5 | ZONE-07, NOTF-03 |
+| Phase 6 | DOC-01, DOC-02 |
+| Phase 7 | DOC-03, DOC-04, DOC-05 |
 
 ---
 

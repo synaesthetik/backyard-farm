@@ -81,6 +81,14 @@
 - [ ] **NOTF-02**: Alert debounce and hysteresis prevent alert storms (alert fires on crossing threshold, clears only when value recovers past hysteresis band)
 - [ ] **NOTF-03**: Self-hosted push notifications via ntfy (optional V1 stretch goal — in-app alerts are the baseline)
 
+### Documentation
+
+- [ ] **DOC-01**: A complete hardware shopping list organized by subsystem with exact part numbers, quantities, unit prices, and purchase links; includes total cost summary
+- [ ] **DOC-02**: Wiring diagrams for every hardware connection (GPIO, I2C, relay, solenoid, limit switch, load cell, power) with pin numbers, wire colors, standard notation, and a smoke test procedure per subsystem; cross-references codebase config files and constants
+- [ ] **DOC-03**: An interactive in-app tutorial that walks a new user through first boot, zone setup, sensor verification, manual irrigation, coop automation, and recommendation approval — each step validates completion before advancing
+- [ ] **DOC-04**: Full reference documentation covering every dashboard screen, configuration option, alert type, and automation rule with screenshots and examples
+- [ ] **DOC-05**: Troubleshooting guide for the 20 most common failure modes with diagnostic steps and resolution; documentation is versioned alongside the codebase and builds automatically
+
 ---
 
 ## v2 Requirements
@@ -181,12 +189,17 @@
 | NOTF-01 | Phase 2 | Pending |
 | NOTF-02 | Phase 2 | Pending |
 | NOTF-03 | Phase 5 | Pending |
+| DOC-01 | Phase 6 | Pending |
+| DOC-02 | Phase 6 | Pending |
+| DOC-03 | Phase 7 | Pending |
+| DOC-04 | Phase 7 | Pending |
+| DOC-05 | Phase 7 | Pending |
 
 **Coverage:**
-- v1 requirements: 52 total
-- Mapped to phases: 52
+- v1 requirements: 57 total
+- Mapped to phases: 57
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-04-01*
-*Last updated: 2026-04-01 after initial definition*
+*Last updated: 2026-04-10 after adding DOC-01 through DOC-05*
