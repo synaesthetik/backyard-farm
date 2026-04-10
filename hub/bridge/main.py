@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 
 import aiomqtt
 import asyncpg
+from aiohttp import web
 from dotenv import load_dotenv
 
 from models import SensorPayload, HeartbeatPayload, QualityFlag, ProcessedReading
@@ -264,6 +265,116 @@ async def notify_api(delta: dict):
         pass  # Non-critical — dashboard may not be connected
 
 
+async def _bridge_read_vwc_high_threshold(zone_id: str, db_pool: asyncpg.Pool) -> float:
+    """Read vwc_high_threshold for zone from TimescaleDB. Falls back to 60.0."""
+    try:
+        row = await db_pool.fetchrow(
+            "SELECT vwc_high_threshold FROM zone_configs WHERE zone_id = $1",
+            zone_id
+        )
+        if row and row["vwc_high_threshold"] is not None:
+            return float(row["vwc_high_threshold"])
+    except Exception as e:
+        logger.warning("Failed to read zone config for %s: %s", zone_id, e)
+    return 60.0
+
+
+async def _handle_approve(request: web.Request) -> web.Response:
+    """POST /internal/recommendations/{recommendation_id}/approve
+
+    Called by the API process to approve a recommendation.
+    Runs rule_engine.approve(), opens the valve via MQTT, starts IrrigationLoop.
+    """
+    recommendation_id = request.match_info["recommendation_id"]
+    db_pool = request.app["db_pool"]
+
+    zone_id = rule_engine.approve(recommendation_id)
+    if zone_id is None:
+        return web.json_response(
+            {"error": "Recommendation not found or not pending"},
+            status=404
+        )
+
+    # Read zone-configured target VWC from DB (not hardcoded)
+    target_vwc = await _bridge_read_vwc_high_threshold(zone_id, db_pool)
+
+    # Open the valve via MQTT (bridge publishes the command directly)
+    import uuid
+    command_id = str(uuid.uuid4())
+    payload = json.dumps({
+        "command_id": command_id,
+        "action": "open",
+        "zone_id": zone_id,
+    })
+    try:
+        async with aiomqtt.Client(
+            MQTT_HOST, port=MQTT_PORT, username=MQTT_USER, password=MQTT_PASS
+        ) as client:
+            await client.publish(f"farm/{zone_id}/commands/irrigate", payload, qos=1)
+        logger.info("Approve: valve open command published for zone %s", zone_id)
+    except Exception as e:
+        logger.error("Failed to publish valve open for %s: %s", zone_id, e)
+        # Undo approve so recommendation is not stuck in limbo
+        rule_engine.reject(recommendation_id)
+        return web.json_response({"error": f"Failed to open valve: {e}"}, status=502)
+
+    # Start sensor-feedback irrigation loop
+    irrigation_loop.start(zone_id, target_vwc)
+
+    # Broadcast updated recommendation queue to dashboard
+    await notify_api({
+        "type": "recommendation_queue",
+        "recommendations": rule_engine.get_pending_recommendations(),
+    })
+
+    return web.json_response({"status": "approved", "zone_id": zone_id, "target_vwc": target_vwc})
+
+
+async def _handle_reject(request: web.Request) -> web.Response:
+    """POST /internal/recommendations/{recommendation_id}/reject
+
+    Called by the API process to reject a recommendation.
+    Runs rule_engine.reject() which starts the back-off window (AI-05).
+    """
+    recommendation_id = request.match_info["recommendation_id"]
+
+    rule_engine.reject(recommendation_id)
+
+    # Broadcast updated recommendation queue to dashboard
+    await notify_api({
+        "type": "recommendation_queue",
+        "recommendations": rule_engine.get_pending_recommendations(),
+    })
+
+    return web.json_response({"status": "rejected"})
+
+
+async def run_internal_server(db_pool: asyncpg.Pool):
+    """Run internal HTTP server on port 8001 for cross-process IPC.
+
+    Exposes approve/reject recommendation endpoints so the API process
+    can drive rule_engine and irrigation_loop (which live in bridge).
+    Port 8001 is NOT exposed to the host in docker-compose — internal only.
+    """
+    app = web.Application()
+    app["db_pool"] = db_pool
+    app.router.add_post(
+        "/internal/recommendations/{recommendation_id}/approve",
+        _handle_approve
+    )
+    app.router.add_post(
+        "/internal/recommendations/{recommendation_id}/reject",
+        _handle_reject
+    )
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", 8001)
+    await site.start()
+    logger.info("Bridge internal HTTP server started on port 8001")
+    # Keep running forever alongside bridge_loop and coop_scheduler_loop
+    await asyncio.Event().wait()
+
+
 async def bridge_loop(db_pool: asyncpg.Pool):
     """Main MQTT subscriber loop."""
     logger.info("Starting bridge loop — connecting to %s:%d", MQTT_HOST, MQTT_PORT)
@@ -351,6 +462,7 @@ async def main():
     await asyncio.gather(
         bridge_loop(db_pool),
         coop_scheduler_loop(notify_callback=notify_api),
+        run_internal_server(db_pool),
     )
 
 
