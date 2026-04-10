@@ -8,17 +8,19 @@ import pytest
 class TestGetTodaySchedule:
     def test_get_today_schedule_returns_sunrise_sunset(self):
         """get_today_schedule() returns dict with open_at and close_at as datetime objects."""
-        fake_sunrise = datetime(2026, 4, 10, 13, 30, 0, tzinfo=timezone.utc)
-        fake_sunset = datetime(2026, 4, 10, 2, 15, 0, tzinfo=timezone.utc)  # before hard close
+        today = datetime.now(timezone.utc).date()
+        fake_sunrise = datetime(today.year, today.month, today.day, 13, 30, 0, tzinfo=timezone.utc)
+        # sunset at 2:15 UTC — before hard close hour of 21, so close_at == sunset
+        fake_sunset = datetime(today.year, today.month, today.day, 2, 15, 0, tzinfo=timezone.utc)
 
         fake_sun_result = {
             "sunrise": fake_sunrise,
             "sunset": fake_sunset,
         }
 
-        with patch("astral.sun.sun", return_value=fake_sun_result):
-            from coop_scheduler import get_today_schedule
-            schedule = get_today_schedule()
+        import coop_scheduler
+        with patch.object(coop_scheduler, "sun", return_value=fake_sun_result):
+            schedule = coop_scheduler.get_today_schedule()
 
         assert "open_at" in schedule
         assert "close_at" in schedule
@@ -29,21 +31,20 @@ class TestGetTodaySchedule:
 
     def test_schedule_respects_offset(self, monkeypatch):
         """With COOP_OPEN_OFFSET_MINUTES=30, open_at is 30 minutes after sunrise."""
-        fake_sunrise = datetime(2026, 4, 10, 13, 30, 0, tzinfo=timezone.utc)
-        fake_sunset = datetime(2026, 4, 10, 2, 15, 0, tzinfo=timezone.utc)
+        today = datetime.now(timezone.utc).date()
+        fake_sunrise = datetime(today.year, today.month, today.day, 13, 30, 0, tzinfo=timezone.utc)
+        fake_sunset = datetime(today.year, today.month, today.day, 2, 15, 0, tzinfo=timezone.utc)
 
         fake_sun_result = {
             "sunrise": fake_sunrise,
             "sunset": fake_sunset,
         }
 
-        monkeypatch.setenv("COOP_OPEN_OFFSET_MINUTES", "30")
-
         import importlib
         import coop_scheduler
-        importlib.reload(coop_scheduler)
+        monkeypatch.setattr(coop_scheduler, "OPEN_OFFSET", 30)
 
-        with patch("astral.sun.sun", return_value=fake_sun_result):
+        with patch.object(coop_scheduler, "sun", return_value=fake_sun_result):
             schedule = coop_scheduler.get_today_schedule()
 
         expected_open = fake_sunrise + timedelta(minutes=30)
@@ -61,15 +62,11 @@ class TestGetTodaySchedule:
             "sunset": fake_sunset,
         }
 
-        monkeypatch.setenv("COOP_HARD_CLOSE_HOUR", "21")
-        monkeypatch.setenv("COOP_OPEN_OFFSET_MINUTES", "0")
-        monkeypatch.setenv("COOP_CLOSE_OFFSET_MINUTES", "0")
-
-        import importlib
         import coop_scheduler
-        importlib.reload(coop_scheduler)
+        monkeypatch.setattr(coop_scheduler, "HARD_CLOSE_HOUR", 21)
+        monkeypatch.setattr(coop_scheduler, "CLOSE_OFFSET", 0)
 
-        with patch("astral.sun.sun", return_value=fake_sun_result):
+        with patch.object(coop_scheduler, "sun", return_value=fake_sun_result):
             schedule = coop_scheduler.get_today_schedule()
 
         expected_hard_close = datetime(today.year, today.month, today.day, 21, 0, 0, tzinfo=timezone.utc)
@@ -80,25 +77,16 @@ class TestStuckDoorWatchdog:
     @pytest.mark.asyncio
     async def test_stuck_door_watchdog_fires_alert(self, monkeypatch):
         """When no ack arrives within timeout, notify_callback is called with P0 stuck_door alert."""
-        monkeypatch.setenv("STUCK_DOOR_TIMEOUT_SECONDS", "0")
-
-        import importlib
         import coop_scheduler
-        importlib.reload(coop_scheduler)
-
-        notify_callback = AsyncMock()
-
         # Ensure the ack event is NOT set (simulating no ack received)
         coop_scheduler._coop_ack_received.clear()
 
         # Set timeout to 0.1 seconds for fast test execution
-        original_timeout = coop_scheduler.STUCK_DOOR_TIMEOUT_SECONDS
-        coop_scheduler.STUCK_DOOR_TIMEOUT_SECONDS = 0.1
+        monkeypatch.setattr(coop_scheduler, "STUCK_DOOR_TIMEOUT_SECONDS", 0.1)
 
-        try:
-            await coop_scheduler._stuck_door_watchdog(notify_callback)
-        finally:
-            coop_scheduler.STUCK_DOOR_TIMEOUT_SECONDS = original_timeout
+        notify_callback = AsyncMock()
+
+        await coop_scheduler._stuck_door_watchdog(notify_callback)
 
         # Verify notify_callback was called with the alert_state delta
         notify_callback.assert_awaited_once()
