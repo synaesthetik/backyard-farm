@@ -4,12 +4,15 @@
 :root {
   --color-bg: #0f1117;
   --color-surface: #1c1f2b;
+  --color-surface-hover: #242838;
   --color-accent: #4ade80;
+  --color-accent-dim: rgba(74, 222, 128, 0.12);
   --color-stale: #f59e0b;
   --color-stuck: #f97316;
   --color-offline: #ef4444;
   --color-muted: #6b7280;
   --color-border: #2d3149;
+  --color-border-subtle: rgba(255, 255, 255, 0.06);
   --color-text-primary: #f1f5f9;
   --color-text-secondary: #94a3b8;
 
@@ -19,6 +22,14 @@
   --spacing-lg: 24px;
   --spacing-xl: 32px;
   --spacing-2xl: 48px;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.2s ease;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -29,4 +40,9 @@ body {
   color: var(--color-text-primary);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-accent-dim);
+  color: var(--color-text-primary);
 }

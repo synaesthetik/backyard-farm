@@ -29,11 +29,13 @@
 <style>
   .health-badge {
     display: inline-block;
-    font-size: 14px;
-    font-weight: 400;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
     line-height: 1.4;
-    padding: 2px var(--spacing-xs);
+    padding: 3px var(--spacing-sm);
     border-radius: 99px;
+    text-transform: uppercase;
   }
   .green {
     background: var(--color-accent);

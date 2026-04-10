@@ -94,16 +94,18 @@
   .rec-card {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: 8px;
+    border-left: 3px solid var(--color-accent);
+    border-radius: var(--radius-md);
     padding: var(--spacing-md);
     display: flex;
     flex-direction: column;
     gap: var(--spacing-sm);
+    box-shadow: var(--shadow-card);
   }
 
   .action-description {
     font-size: 16px;
-    font-weight: 400;
+    font-weight: 600;
     line-height: 1.5;
     color: var(--color-text-primary);
   }

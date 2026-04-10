@@ -109,15 +109,27 @@
 
 <style>
   .zone-card {
-    background-color: #0f1117;
+    background-color: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: 8px;
+    border-radius: var(--radius-lg);
     padding: var(--spacing-md);
     cursor: pointer;
+    box-shadow: var(--shadow-card);
+    transition: transform var(--transition-fast), box-shadow var(--transition-base), border-color var(--transition-base);
+  }
+
+  .zone-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card-hover);
+    border-color: var(--color-accent-dim);
+  }
+
+  .zone-card:active {
+    transform: translateY(0);
   }
 
   .zone-card.stale {
-    border-color: #f59e0b;
+    border-color: var(--color-stale);
   }
 
   .zone-header {

@@ -38,7 +38,7 @@
   .tab {
     flex: 1;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
     justify-content: center;
     gap: var(--spacing-xs);
@@ -49,11 +49,16 @@
     font-weight: 400;
     line-height: 1.4;
     border-bottom: 2px solid transparent;
-    transition: color 0.15s;
+    transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast);
+  }
+  .tab:hover {
+    color: var(--color-text-secondary);
+    background: var(--color-border-subtle);
   }
   .tab.active {
     color: var(--color-accent);
     border-bottom-color: var(--color-accent);
+    background: var(--color-accent-dim);
   }
   .tab-label {
     font-size: 14px;

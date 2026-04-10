@@ -57,7 +57,7 @@
   .app-header {
     position: sticky;
     top: 0;
-    height: 48px;
+    height: 52px;
     background: var(--color-surface);
     display: flex;
     align-items: center;
@@ -70,7 +70,8 @@
     font-size: 20px;
     font-weight: 600;
     line-height: 1.2;
-    color: var(--color-text-primary);
+    color: var(--color-accent);
+    letter-spacing: -0.01em;
   }
   .ws-dot {
     width: 8px;
@@ -78,9 +79,20 @@
     border-radius: 50%;
     background: var(--color-offline);
     flex-shrink: 0;
+    transition: background var(--transition-base), box-shadow var(--transition-base);
   }
-  .ws-dot.connected { background: var(--color-accent); }
-  .ws-dot.reconnecting { background: var(--color-stale); }
+  .ws-dot.connected {
+    background: var(--color-accent);
+    box-shadow: 0 0 6px rgba(74, 222, 128, 0.5);
+  }
+  .ws-dot.reconnecting {
+    background: var(--color-stale);
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
   .page-content {
     flex: 1;
     padding: var(--spacing-md);
