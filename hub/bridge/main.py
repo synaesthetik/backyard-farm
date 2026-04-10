@@ -31,6 +31,15 @@ from health_score import compute_health_score
 from irrigation_loop import IrrigationLoop
 from zone_config import ZoneConfigStore, FEED_MAX_WEIGHT_GRAMS, WATER_MAX_LEVEL, FEED_LOW_THRESHOLD_PCT, WATER_LOW_THRESHOLD_PCT
 from coop_scheduler import coop_scheduler_loop, mark_coop_ack_received
+from flock_config import FlockConfigStore
+from egg_estimator import estimate_egg_count
+from production_model import (
+    compute_expected_production,
+    compute_age_factor,
+    compute_daylight_factor,
+    BREED_LAY_RATES,
+)
+from feed_consumption import compute_daily_feed_consumption
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s")
@@ -65,6 +74,9 @@ rule_engine = RuleEngine()
 alert_engine = AlertEngine()
 irrigation_loop = IrrigationLoop()
 zone_config_store = ZoneConfigStore()
+
+# Phase 3 flock instances
+flock_config_store = FlockConfigStore()
 
 # In-memory zone sensor cache for health score computation
 # Structure: { zone_id: { sensor_type: {"value": float, "quality": str} } }
@@ -202,6 +214,10 @@ async def _evaluate_phase2(zone_id: str, sensor_type: str, value: float, quality
             "percentage": round(water_pct, 1),
             "below_threshold": water_pct < WATER_LOW_THRESHOLD_PCT,
         })
+
+    elif sensor_type == "nesting_box_weight":
+        # Phase 3: per-reading egg count estimate (real-time path, D-02)
+        await _evaluate_phase3_nesting_box(zone_id, value, quality_str)
 
     if alert_changed:
         await notify_api({
@@ -375,6 +391,234 @@ async def run_internal_server(db_pool: asyncpg.Pool):
     await asyncio.Event().wait()
 
 
+async def _evaluate_phase3_nesting_box(zone_id: str, value: float, quality_str: str):
+    """Per-reading handler for nesting_box_weight sensor type (Phase 3, real-time path).
+
+    Computes egg count estimate and hen_present from raw weight, UPSERTs today's
+    egg_counts row, and broadcasts a nesting_box delta immediately.
+    Quality must be GOOD to update the count.
+    """
+    if quality_str != "GOOD":
+        return
+
+    flock_config = flock_config_store.get()
+    egg_count, hen_present = estimate_egg_count(value, flock_config)
+    updated_at = datetime.now(timezone.utc)
+
+    await notify_api({
+        "type": "nesting_box",
+        "estimated_count": egg_count,
+        "hen_present": hen_present,
+        "raw_weight_grams": value,
+        "updated_at": updated_at.isoformat(),
+    })
+
+
+async def periodic_flock_loop(db_pool: asyncpg.Pool):
+    """Run every 30 minutes: estimate egg count from latest nesting box reading,
+    UPSERT egg_counts, and evaluate production drop alert (Phase 3, D-02).
+    """
+    while True:
+        await asyncio.sleep(30 * 60)
+        try:
+            flock_config = flock_config_store.get()
+
+            # Query latest GOOD nesting_box_weight from last 35 minutes
+            row = await db_pool.fetchrow(
+                """
+                SELECT value FROM sensor_readings
+                WHERE zone_id = 'coop'
+                  AND sensor_type = 'nesting_box_weight'
+                  AND quality = 'GOOD'
+                  AND time > NOW() - INTERVAL '35 minutes'
+                ORDER BY time DESC
+                LIMIT 1
+                """
+            )
+
+            if row is not None:
+                raw_weight = float(row["value"])
+                egg_count, hen_present = estimate_egg_count(raw_weight, flock_config)
+                today = datetime.now(timezone.utc).date()
+                updated_at = datetime.now(timezone.utc)
+
+                await db_pool.execute(
+                    """
+                    INSERT INTO egg_counts (count_date, estimated_count, raw_weight_grams, updated_at)
+                    VALUES ($1, $2, $3, $4)
+                    ON CONFLICT (count_date) DO UPDATE
+                      SET estimated_count = EXCLUDED.estimated_count,
+                          raw_weight_grams = EXCLUDED.raw_weight_grams,
+                          updated_at = EXCLUDED.updated_at
+                    """,
+                    today, egg_count, raw_weight, updated_at,
+                )
+
+                await notify_api({
+                    "type": "nesting_box",
+                    "estimated_count": egg_count,
+                    "hen_present": hen_present,
+                    "raw_weight_grams": raw_weight,
+                    "updated_at": updated_at.isoformat(),
+                })
+
+            # Evaluate production drop alert — skip if fewer than 3 days of data (Pitfall 4 guard)
+            rows = await db_pool.fetch(
+                """
+                SELECT estimated_count FROM egg_counts
+                ORDER BY count_date DESC
+                LIMIT 3
+                """
+            )
+
+            if len(rows) < 3:
+                logger.debug("Fewer than 3 egg_count records — skipping production drop alert")
+            else:
+                rolling_avg = sum(r["estimated_count"] for r in rows) / 3.0
+                today_date = datetime.now(timezone.utc).date()
+                age_factor = compute_age_factor(flock_config.hatch_date, today=today_date)
+                daylight_factor = compute_daylight_factor(
+                    lat=flock_config.latitude,
+                    lon=flock_config.longitude,
+                    today=today_date,
+                    supplemental_lighting=flock_config.supplemental_lighting,
+                )
+                lay_rate = (
+                    flock_config.lay_rate_override
+                    if flock_config.lay_rate_override is not None
+                    else BREED_LAY_RATES.get(flock_config.breed, 0.75) or 0.75
+                )
+                expected = compute_expected_production(
+                    flock_size=flock_config.flock_size,
+                    lay_rate=lay_rate,
+                    age_factor=age_factor,
+                    daylight_factor=daylight_factor,
+                )
+
+                if expected > 0:
+                    ratio_pct = (rolling_avg / expected) * 100.0
+                    changed, _ = alert_engine.evaluate(
+                        "production_drop:coop", ratio_pct, 75.0, clear_above=True
+                    )
+                    if changed:
+                        await notify_api({
+                            "type": "alert_state",
+                            "alerts": alert_engine.get_alert_state(),
+                        })
+
+        except Exception as e:
+            logger.error("periodic_flock_loop error: %s", e)
+
+
+async def daily_feed_loop(db_pool: asyncpg.Pool):
+    """Run daily at midnight UTC: compute feed consumption delta,
+    INSERT into feed_daily_consumption, evaluate feed_consumption_drop alert.
+    """
+    from datetime import timedelta
+
+    while True:
+        now = datetime.now(timezone.utc)
+        next_midnight = (now + timedelta(days=1)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        sleep_seconds = (next_midnight - now).total_seconds()
+        await asyncio.sleep(sleep_seconds)
+
+        try:
+            yesterday = datetime.now(timezone.utc).date() - timedelta(days=1)
+
+            # Query first and last feed_weight readings for yesterday
+            first_row = await db_pool.fetchrow(
+                """
+                SELECT value FROM sensor_readings
+                WHERE zone_id = 'coop'
+                  AND sensor_type = 'feed_weight'
+                  AND quality = 'GOOD'
+                  AND time::date = $1
+                ORDER BY time ASC
+                LIMIT 1
+                """,
+                yesterday,
+            )
+            last_row = await db_pool.fetchrow(
+                """
+                SELECT value FROM sensor_readings
+                WHERE zone_id = 'coop'
+                  AND sensor_type = 'feed_weight'
+                  AND quality = 'GOOD'
+                  AND time::date = $1
+                ORDER BY time DESC
+                LIMIT 1
+                """,
+                yesterday,
+            )
+
+            if first_row is None or last_row is None:
+                logger.info("No feed_weight readings for %s — skipping daily_feed_loop", yesterday)
+                continue
+
+            consumption_grams, refill_detected = compute_daily_feed_consumption(
+                start_weight=float(first_row["value"]),
+                end_weight=float(last_row["value"]),
+            )
+
+            updated_at = datetime.now(timezone.utc)
+            await db_pool.execute(
+                """
+                INSERT INTO feed_daily_consumption
+                  (consumption_date, consumption_grams, refill_detected, updated_at)
+                VALUES ($1, $2, $3, $4)
+                ON CONFLICT (consumption_date) DO UPDATE
+                  SET consumption_grams = EXCLUDED.consumption_grams,
+                      refill_detected = EXCLUDED.refill_detected,
+                      updated_at = EXCLUDED.updated_at
+                """,
+                yesterday, consumption_grams, refill_detected, updated_at,
+            )
+
+            # Query last 7 days of consumption (exclude refill/null days for trend)
+            rows = await db_pool.fetch(
+                """
+                SELECT consumption_grams FROM feed_daily_consumption
+                WHERE refill_detected = FALSE
+                  AND consumption_grams IS NOT NULL
+                ORDER BY consumption_date DESC
+                LIMIT 7
+                """
+            )
+
+            values = [float(r["consumption_grams"]) for r in rows]
+            # weekly sparkline oldest-first, pad with 0 for missing days
+            weekly = list(reversed(values)) + [0.0] * max(0, 7 - len(values))
+            rate = consumption_grams if consumption_grams is not None else (values[0] if values else 0.0)
+
+            await notify_api({
+                "type": "feed_consumption",
+                "rate_grams_per_day": rate,
+                "weekly": weekly[:7],
+            })
+
+            # Evaluate feed_consumption_drop alert — skip if fewer than 3 data points (Pitfall 4 guard)
+            if len(values) < 3:
+                logger.debug("Fewer than 3 feed consumption records — skipping alert evaluation")
+                continue
+
+            seven_day_avg = sum(values) / len(values)
+            if seven_day_avg > 0 and consumption_grams is not None:
+                deviation_pct = ((seven_day_avg - consumption_grams) / seven_day_avg) * 100.0
+                changed, _ = alert_engine.evaluate(
+                    "feed_consumption_drop:coop", deviation_pct, 30.0, clear_above=False
+                )
+                if changed:
+                    await notify_api({
+                        "type": "alert_state",
+                        "alerts": alert_engine.get_alert_state(),
+                    })
+
+        except Exception as e:
+            logger.error("daily_feed_loop error: %s", e)
+
+
 async def bridge_loop(db_pool: asyncpg.Pool):
     """Main MQTT subscriber loop."""
     logger.info("Starting bridge loop — connecting to %s:%d", MQTT_HOST, MQTT_PORT)
@@ -458,11 +702,14 @@ async def main():
 
     await calibration_store.load_from_db(db_pool)
     await zone_config_store.load_from_db(db_pool)
+    await flock_config_store.load_from_db(db_pool)
 
     await asyncio.gather(
         bridge_loop(db_pool),
         coop_scheduler_loop(notify_callback=notify_api),
         run_internal_server(db_pool),
+        periodic_flock_loop(db_pool),
+        daily_feed_loop(db_pool),
     )
 
 
