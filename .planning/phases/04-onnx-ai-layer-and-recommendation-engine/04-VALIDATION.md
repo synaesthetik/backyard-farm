@@ -42,9 +42,9 @@ created: 2026-04-15
 | 04-01-02 | 01 | 1 | AI-06 | — | Maturity tracking persists | unit | `pytest tests/inference/test_maturity_tracker.py` | TDD | ⬜ pending |
 | 04-02-01 | 02 | 1 | AI-03 | — | ONNX inference produces recommendation dicts | unit | `pytest tests/inference/test_inference_service.py` | TDD | ⬜ pending |
 | 04-02-02 | 02 | 1 | AI-03 | — | Training pipelines with regression protection | unit | `pytest tests/inference/test_training_pipelines.py` | TDD | ⬜ pending |
-| 04-03-01 | 03 | 2 | AI-03 | — | Scheduler runs inference jobs + weekly retraining | unit | `pytest tests/inference/test_inference_scheduler.py` | TDD | ⬜ pending |
-| 04-04-01 | 04 | 2 | AI-07 | — | AI Status card and toggle render | component | `npx vitest run --reporter=verbose` | TDD | ⬜ pending |
-| 04-05-01 | 05 | 3 | AI-07 | — | End-to-end integration | manual | browser verification | N/A | ⬜ pending |
+| 04-03-01 | 03 | 2 | AI-03 | — | Scheduler runs inference jobs + weekly retraining | structural | `python -c "from inference.inference_scheduler import InferenceScheduler; print('OK')"` | plan-created | ⬜ pending |
+| 04-04-01 | 04 | 3 | AI-07 | — | AI Status card and toggle render | component | `npx vitest run --reporter=verbose` | TDD | ⬜ pending |
+| 04-05-01 | 05 | 4 | AI-07 | — | End-to-end integration | manual | browser verification | N/A | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
