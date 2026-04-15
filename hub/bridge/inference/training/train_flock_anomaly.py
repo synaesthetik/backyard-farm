@@ -71,7 +71,9 @@ async def fetch_training_data(db_pool) -> tuple:
         (X: np.ndarray shape [n_samples, 8], y: np.ndarray shape [n_samples])
         Returns (None, None) if insufficient data.
     """
-    # Query egg counts (derived from GOOD nesting_box_weight readings)
+    # Query egg counts joined with GOOD-flagged nesting_box_weight sensor readings.
+    # The quality = 'GOOD' filter (AI-06, D-10) ensures only validated sensor data
+    # contributes to the training feature set.
     egg_sql = """
         SELECT
             ec.count_date,
@@ -83,6 +85,13 @@ async def fetch_training_data(db_pool) -> tuple:
         FROM egg_counts ec
         LEFT JOIN egg_counts ec2
           ON ec2.count_date BETWEEN ec.count_date - INTERVAL '2 days' AND ec.count_date
+        WHERE EXISTS (
+            SELECT 1 FROM sensor_readings sr
+            WHERE sr.zone_id = 'coop'
+              AND sr.sensor_type = 'nesting_box_weight'
+              AND sr.quality = 'GOOD'
+              AND sr.time::date = ec.count_date
+        )
         GROUP BY ec.count_date, ec.estimated_count
         ORDER BY ec.count_date
     """
