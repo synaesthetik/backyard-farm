@@ -123,6 +123,20 @@
   .page-content {
     flex: 1;
     padding: var(--spacing-md);
-    padding-bottom: var(--spacing-md);
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+
+  @media (min-width: 640px) {
+    .page-content {
+      padding: var(--spacing-lg) var(--spacing-xl);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .page-content {
+      padding: var(--spacing-lg) var(--spacing-2xl);
+    }
   }
 </style>

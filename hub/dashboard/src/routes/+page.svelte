@@ -56,13 +56,13 @@
     order: 2;
   }
 
-  /* Desktop (>= 640px): 2-column grid, zones left, flock right */
+  /* Desktop (>= 640px): 2-column grid, zones left (wider), status right */
   @media (min-width: 640px) {
     .home-layout {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 3fr 2fr;
       grid-template-rows: auto;
-      gap: var(--spacing-md);
+      gap: var(--spacing-lg);
       align-items: start;
     }
 
@@ -74,6 +74,8 @@
     .flock-col {
       order: 2;
       grid-column: 2;
+      position: sticky;
+      top: 120px;
     }
   }
 

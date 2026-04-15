@@ -15,13 +15,23 @@
     {/if}
   </div>
 
-  {#if dashboardStore.modelMaturity === null}
-    <!-- Loading skeleton shimmer -->
-    <div class="skeleton-list">
-      <div class="skeleton-row"></div>
-      <div class="skeleton-row"></div>
-      <div class="skeleton-row"></div>
+  {#if dashboardStore.modelMaturity === null || entries.length === 0}
+    <!-- No data yet — show informative cold-start state -->
+    <div class="cold-start-rows">
+      <div class="cold-row">
+        <span class="cold-domain">Irrigation</span>
+        <span class="cold-status">Collecting data</span>
+      </div>
+      <div class="cold-row">
+        <span class="cold-domain">Zone Health</span>
+        <span class="cold-status">Collecting data</span>
+      </div>
+      <div class="cold-row">
+        <span class="cold-domain">Flock Anomaly</span>
+        <span class="cold-status">Collecting data</span>
+      </div>
     </div>
+    <p class="cold-start-message">The AI is still learning — rule-based recommendations are active.</p>
   {:else if allMature}
     <!-- Compact summary: no progress bars -->
     <p class="compact-summary">All domains are using the AI model.</p>
@@ -114,6 +124,40 @@
 
   .configure-link:hover {
     text-decoration: underline;
+  }
+
+  /* Cold-start placeholder rows */
+  .cold-start-rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .cold-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-sm) 0;
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+
+  .cold-row:last-child {
+    border-bottom: none;
+  }
+
+  .cold-domain {
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--color-text-primary);
+  }
+
+  .cold-status {
+    font-size: 14px;
+    font-weight: 400;
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--color-muted);
+    font-style: italic;
   }
 
   /* Skeleton shimmer loading state */
