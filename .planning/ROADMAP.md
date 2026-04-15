@@ -207,14 +207,14 @@ Plans:
   3. Scheduled inference runs automatically: zone health every 15 minutes, irrigation every 1 hour, flock health every 30 minutes; a threshold crossing in any zone triggers immediate re-inference for that zone
   4. The model maturity indicator in the UI shows recommendation count and approval/rejection rate per recommendation type; during cold start it displays a clear message that the model is still learning
 
-**Plans**: TBD
+**Plans**: 5 plans
 
 Plans:
-- [ ] 04-01: Feature aggregation service — assembles recent sensor windows per zone from TimescaleDB for ONNX inference input; GOOD-flag filter enforced
-- [ ] 04-02: ONNX model selection spike — benchmark random forest, gradient boosted, and small neural network on actual hub hardware at operating temperature; select architecture before full implementation
-- [ ] 04-03: Zone health and irrigation ONNX models — training pipeline (offline, on development machine), model export to ONNX, hot-reload via filesystem watch on hub
-- [ ] 04-04: Flock production anomaly ONNX model — training pipeline, export, integration with flock health alert signals
-- [ ] 04-05: Inference scheduler (APScheduler), event-triggered re-inference on threshold crossing, model maturity indicator UI component
+- [ ] 04-01-PLAN.md — Data foundation: feature aggregator with GOOD-flag filter, maturity tracker, synthetic data generator CLI, new package dependencies
+- [ ] 04-02-PLAN.md — ONNX inference service with hot-reload, three training pipelines (zone health, irrigation, flock anomaly) with regression protection
+- [ ] 04-03-PLAN.md — Bridge integration: APScheduler inference scheduler, model watcher, AI/Rules toggle persistence, API settings endpoints
+- [ ] 04-04-PLAN.md — Dashboard UI: AIStatusCard, DomainMaturityRow, AISettingsToggle, settings route, RecommendationCard source badge, header settings icon
+- [ ] 04-05-PLAN.md — Human verification checkpoint: full Phase 4 end-to-end integration test
 
 **UI hint**: yes
 
@@ -290,7 +290,7 @@ Plans:
 | 1. Hardware Foundation and Sensor Pipeline | 8/8 | Complete | - |
 | 2. Actuator Control, Alerts, and Dashboard V1 | 6/7 | Gap closure in progress | 2026-04-10 |
 | 3. Flock Management and Unified Dashboard | 5/6 | Complete    | 2026-04-15 |
-| 4. ONNX AI Layer and Recommendation Engine | 0/5 | Not started | - |
+| 4. ONNX AI Layer and Recommendation Engine | 0/5 | Planned | - |
 | 5. Operational Hardening | 0/4 | Not started | - |
 | 6. Hardware Shopping List and Wiring Diagrams | 0/0 | Not started | - |
 | 7. Interactive Tutorial and User Documentation | 0/0 | Not started | - |
