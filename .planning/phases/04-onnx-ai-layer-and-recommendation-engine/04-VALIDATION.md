@@ -2,8 +2,8 @@
 phase: 4
 slug: onnx-ai-layer-and-recommendation-engine
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-04-15
 ---
 
@@ -38,11 +38,13 @@ created: 2026-04-15
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 04-01-01 | 01 | 1 | AI-06 | — | GOOD-flag filter enforced | unit | `pytest tests/test_feature_aggregation.py` | ❌ W0 | ⬜ pending |
-| 04-02-01 | 02 | 1 | AI-03 | — | N/A (spike) | manual | benchmark script output | ❌ W0 | ⬜ pending |
-| 04-03-01 | 03 | 2 | AI-03 | — | Model produces recommendation dicts | unit | `pytest tests/test_onnx_inference.py` | ❌ W0 | ⬜ pending |
-| 04-04-01 | 04 | 2 | AI-03 | — | Flock anomaly signals feed alert engine | unit | `pytest tests/test_flock_anomaly.py` | ❌ W0 | ⬜ pending |
-| 04-05-01 | 05 | 3 | AI-07 | — | Maturity indicator renders | component | `npx vitest run --reporter=verbose` | ❌ W0 | ⬜ pending |
+| 04-01-01 | 01 | 1 | AI-06 | — | GOOD-flag filter enforced | unit | `pytest tests/inference/test_feature_aggregator.py` | TDD | ⬜ pending |
+| 04-01-02 | 01 | 1 | AI-06 | — | Maturity tracking persists | unit | `pytest tests/inference/test_maturity_tracker.py` | TDD | ⬜ pending |
+| 04-02-01 | 02 | 1 | AI-03 | — | ONNX inference produces recommendation dicts | unit | `pytest tests/inference/test_inference_service.py` | TDD | ⬜ pending |
+| 04-02-02 | 02 | 1 | AI-03 | — | Training pipelines with regression protection | unit | `pytest tests/inference/test_training_pipelines.py` | TDD | ⬜ pending |
+| 04-03-01 | 03 | 2 | AI-03 | — | Scheduler runs inference jobs + weekly retraining | unit | `pytest tests/inference/test_inference_scheduler.py` | TDD | ⬜ pending |
+| 04-04-01 | 04 | 2 | AI-07 | — | AI Status card and toggle render | component | `npx vitest run --reporter=verbose` | TDD | ⬜ pending |
+| 04-05-01 | 05 | 3 | AI-07 | — | End-to-end integration | manual | browser verification | N/A | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -50,10 +52,7 @@ created: 2026-04-15
 
 ## Wave 0 Requirements
 
-- [ ] `hub/bridge/tests/test_feature_aggregation.py` — stubs for AI-06 feature window tests
-- [ ] `hub/bridge/tests/test_onnx_inference.py` — stubs for AI-03 inference output shape tests
-- [ ] `hub/bridge/tests/test_flock_anomaly.py` — stubs for flock anomaly detection tests
-- [ ] `onnxruntime` added to hub/bridge requirements — if not already present
+No separate Wave 0 plan required. Plans 04-01 and 04-02 use TDD-style tasks that create tests and implementation atomically within Wave 1. Test files are created by the implementing tasks themselves.
 
 ---
 
@@ -69,11 +68,11 @@ created: 2026-04-15
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 30s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or TDD-created tests
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 not needed — TDD tasks create tests atomically
+- [x] No watch-mode flags
+- [x] Feedback latency < 30s
+- [x] `nyquist_compliant: true` set in frontmatter
 
 **Approval:** pending

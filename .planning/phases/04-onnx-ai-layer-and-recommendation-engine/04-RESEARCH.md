@@ -768,27 +768,15 @@ The bridge conftest.py already handles `sys.path.insert` — new inference test 
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Training on hub vs offline (D-07 resolution)**
-   - What we know: D-07 says "a background job on the hub retrains models weekly" implying hub-side training
-   - What's unclear: Hub hardware may not have enough RAM for scikit-learn GradientBoosting on 4+ weeks of sensor data (can be 100K+ rows per zone)
-   - Recommendation: Spike (04-02) should benchmark training time AND peak RAM on actual hub hardware. If infeasible, D-07 should be updated to mean "hub triggers an external training job or downloads a pre-trained model."
+1. **Training on hub vs offline (D-07 resolution)** RESOLVED: Hub-side training with weekly APScheduler job. Training scripts run on the hub directly — scikit-learn and skl2onnx are included in the bridge Docker image. If hub RAM is insufficient (determined during initial training runs), the training scripts can be run manually from a dev machine as a fallback. D-07 intent preserved: automated weekly retraining via APScheduler.
 
-2. **model_maturity persistence: DB table vs JSON sidecar**
-   - What we know: DB table is queryable; JSON is simpler with no migration
-   - What's unclear: Whether maturity state needs to survive bridge restarts (it does — recommendation counts accumulate over weeks)
-   - Recommendation: Use DB table. Counts need to survive restarts. JSON sidecar would be cleared on container restart if the volume is not mounted correctly.
+2. **model_maturity persistence: DB table vs JSON sidecar** RESOLVED: DB table (`model_maturity` in TimescaleDB). Recommendation counts must survive bridge container restarts. Plans 04-01 creates the table schema.
 
-3. **Feature window sizes per domain**
-   - What we know: Zone health and irrigation use soil moisture/pH/temperature; flock anomaly uses egg counts and expected production ratios
-   - What's unclear: How many hours of lookback is needed for meaningful irrigation vs zone health patterns
-   - Recommendation: 04-02 spike should benchmark with 6h, 12h, 24h windows. Start with 24h for zone health, 6h for flock anomaly (egg counts are daily).
+3. **Feature window sizes per domain** RESOLVED: 24h window for zone health and irrigation (soil moisture/pH/temp patterns), 168h (7 days) for flock anomaly (egg count and production ratios are daily). Exposed as env vars for tuning.
 
-4. **Confidence threshold for fallback-to-rules (Claude's Discretion)**
-   - What we know: D-04 specifies "confidence is below threshold, fall back to rules"
-   - What's unclear: RandomForest outputs class probabilities; GradientBoosting outputs decision function values. "Confidence" means different things per model type
-   - Recommendation: For classification models, use max class probability as confidence. Set initial threshold at 0.65. Expose as `MIN_CONFIDENCE` env var so it can be tuned without a code change.
+4. **Confidence threshold for fallback-to-rules (Claude's Discretion)** RESOLVED: Use max class probability as confidence metric. Initial threshold 0.65, exposed as `MIN_CONFIDENCE` env var. Applies uniformly to all domains (RandomForest and GradientBoosting both support `predict_proba`).
 
 ---
 
