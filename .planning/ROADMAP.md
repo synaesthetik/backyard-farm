@@ -210,8 +210,8 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — Data foundation: feature aggregator with GOOD-flag filter, maturity tracker, synthetic data generator CLI, new package dependencies
-- [ ] 04-02-PLAN.md — ONNX inference service with hot-reload, three training pipelines (zone health, irrigation, flock anomaly) with regression protection
+- [x] 04-01-PLAN.md — Data foundation: feature aggregator with GOOD-flag filter, maturity tracker, synthetic data generator CLI, new package dependencies
+- [x] 04-02-PLAN.md — ONNX inference service with hot-reload, three training pipelines (zone health, irrigation, flock anomaly) with regression protection
 - [ ] 04-03-PLAN.md — Bridge integration: APScheduler inference scheduler, model watcher, AI/Rules toggle persistence, API settings endpoints
 - [ ] 04-04-PLAN.md — Dashboard UI: AIStatusCard, DomainMaturityRow, AISettingsToggle, settings route, RecommendationCard source badge, header settings icon
 - [ ] 04-05-PLAN.md — Human verification checkpoint: full Phase 4 end-to-end integration test
