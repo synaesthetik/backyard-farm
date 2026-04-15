@@ -66,10 +66,10 @@
     try {
       const res = await fetch('/api/flock/egg-history?days=30');
       if (res.ok) {
-        const data = await res.json();
-        dates = data.dates ?? [];
-        actual = data.actual ?? [];
-        expected = data.expected ?? [];
+        const points: { date: string; actual_count: number | null; expected_count: number }[] = await res.json();
+        dates = points.map(p => p.date);
+        actual = points.map(p => p.actual_count ?? 0);
+        expected = points.map(p => p.expected_count);
       }
     } catch {
       // Network error — treat as empty

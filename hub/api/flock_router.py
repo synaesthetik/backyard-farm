@@ -302,11 +302,11 @@ async def egg_history(days: int = Query(30, ge=1, le=90)):
 
     # Fetch actual egg counts for the date range (parameterized)
     actual_rows = await pool.fetch(
-        "SELECT counted_date, estimated_count FROM egg_counts "
-        "WHERE counted_date >= $1 ORDER BY counted_date ASC",
+        "SELECT count_date, estimated_count FROM egg_counts "
+        "WHERE count_date >= $1 ORDER BY count_date ASC",
         date.today() - timedelta(days=days - 1),
     )
-    actual_by_date = {r["counted_date"]: r["estimated_count"] for r in actual_rows}
+    actual_by_date = {r["count_date"]: r["estimated_count"] for r in actual_rows}
 
     # Build result for each day in the range
     result = []
@@ -386,15 +386,13 @@ async def refresh_eggs():
     # Upsert into egg_counts for today
     today = date.today()
     await pool.execute(
-        "INSERT INTO egg_counts (counted_date, estimated_count, hen_present, raw_weight_grams) "
-        "VALUES ($1, $2, $3, $4) "
-        "ON CONFLICT (counted_date) DO UPDATE SET "
+        "INSERT INTO egg_counts (count_date, estimated_count, raw_weight_grams) "
+        "VALUES ($1, $2, $3) "
+        "ON CONFLICT (count_date) DO UPDATE SET "
         "estimated_count = EXCLUDED.estimated_count, "
-        "hen_present = EXCLUDED.hen_present, "
         "raw_weight_grams = EXCLUDED.raw_weight_grams",
         today,
         estimated_count,
-        hen_present,
         raw_weight,
     )
 
