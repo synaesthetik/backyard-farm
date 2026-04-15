@@ -5,6 +5,7 @@
   import TabBar from '$lib/TabBar.svelte';
   import AlertBar from '$lib/AlertBar.svelte';
   import Toast from '$lib/Toast.svelte';
+  import { Settings } from 'lucide-svelte';
 
   let { children } = $props();
 
@@ -30,12 +31,17 @@
 <div class="app-layout">
   <header class="app-header">
     <h1 class="header-title">Farm Dashboard</h1>
-    <span
-      class="ws-dot"
-      class:connected={dashboardStore.connectionStatus === 'connected'}
-      class:reconnecting={dashboardStore.connectionStatus === 'reconnecting'}
-      title={dashboardStore.connectionStatus}
-    ></span>
+    <div class="header-right">
+      <a href="/settings/ai" class="settings-link" aria-label="Open AI settings">
+        <Settings size={20} />
+      </a>
+      <span
+        class="ws-dot"
+        class:connected={dashboardStore.connectionStatus === 'connected'}
+        class:reconnecting={dashboardStore.connectionStatus === 'reconnecting'}
+        title={dashboardStore.connectionStatus}
+      ></span>
+    </div>
   </header>
 
   <TabBar />
@@ -73,6 +79,27 @@
     color: var(--color-accent);
     letter-spacing: -0.01em;
   }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+
+  .settings-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    min-width: 44px;
+    color: var(--color-muted);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+  }
+
+  .settings-link:hover {
+    color: var(--color-text-secondary);
+  }
+
   .ws-dot {
     width: 8px;
     height: 8px;
