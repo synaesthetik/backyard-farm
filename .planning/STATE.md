@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 4 UI-SPEC approved
-last_updated: "2026-04-15T18:46:14.495Z"
-last_activity: 2026-04-15 -- Phase 04 execution started
+stopped_at: Completed 04-03-PLAN.md
+last_updated: "2026-04-15T19:05:35.912Z"
+last_activity: 2026-04-15
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 26
-  completed_plans: 20
-  percent: 77
+  completed_plans: 23
+  percent: 88
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-04-01)
 ## Current Position
 
 Phase: 04 (ONNX AI Layer and Recommendation Engine) — EXECUTING
-Plan: 1 of 5
-Status: Executing Phase 04
-Last activity: 2026-04-15 -- Phase 04 execution started
+Plan: 2 of 5
+Status: Ready to execute
+Last activity: 2026-04-15
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -53,6 +53,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: —
 
 *Updated after each plan completion*
+| Phase 04 P03 | 268 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -64,6 +65,9 @@ Recent decisions affecting current work:
 - Roadmap: ONNX Runtime is the primary AI inference engine — not Ollama. Ollama is optional only for natural-language summaries if hub RAM allows. This is resolved and not revisitable in Phase 1.
 - Roadmap: Phase 4 has a hard data maturity gate — 4+ weeks of GOOD-flagged sensor data required before ONNX model training begins. Do not start Phase 4 early.
 - Roadmap: Hardware failsafe procurement (NC solenoid valves, linear actuator with limit switches, relay boot-state test) must be completed and documented before Phase 1 software work begins.
+- [Phase 04]: APScheduler AsyncIOScheduler runs cooperatively in asyncio event loop — no additional gather() coroutine needed for inference scheduling
+- [Phase 04]: trigger_zone_reinference() called via asyncio.create_task() on threshold crossing — ONNX model re-evaluates zone immediately without waiting for next scheduled cycle (AI-03)
+- [Phase 04]: Model watcher ignores *.prev.onnx to avoid spurious reloads during D-08 training versioning
 
 ### Pending Todos
 
@@ -77,6 +81,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-15T17:57:26.735Z
-Stopped at: Phase 4 UI-SPEC approved
-Resume file: .planning/phases/04-onnx-ai-layer-and-recommendation-engine/04-UI-SPEC.md
+Last session: 2026-04-15T19:05:35.909Z
+Stopped at: Completed 04-03-PLAN.md
+Resume file: None
