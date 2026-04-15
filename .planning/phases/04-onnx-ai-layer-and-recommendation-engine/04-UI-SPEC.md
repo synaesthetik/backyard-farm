@@ -22,7 +22,9 @@ created: 2026-04-15
 | Preset | not applicable |
 | Component library | none (hand-rolled Svelte components) |
 | Icon library | lucide-svelte |
-| Font | Merriweather (body/headings, 400 + 700) + Inter (UI controls, 400 + 600) |
+| Font | Merriweather (body/headings, 400 + 600) + Inter (UI controls, 400 + 600) |
+
+Note: Merriweather 700 exists in the codebase as an inherited weight from prior phases. It is not part of Phase 4's new type declarations. Phase 4 introduces no new weights beyond 400 and 600 (same approach used for the 11px badge size inherited from HealthBadge).
 
 Source: `hub/dashboard/src/app.css`, `hub/dashboard/package.json`
 
@@ -244,7 +246,7 @@ No destructive actions in Phase 4 UI. The AI/Rules toggle is reversible at any t
 | `/settings/ai` | AISettingsToggle.svelte (3 instances) | New route |
 | `/recommendations` | RecommendationCard source badge | Modified |
 
-TabBar: no new tabs. Settings route is accessible via a settings icon button in the app header (`aria-label="Open AI settings"`) or linked from AIStatusCard "Configure" text link (14px Inter, `--color-accent`, no underline by default, underline on hover).
+TabBar: no new tabs. Settings route is accessible via a settings icon button in the app header (`aria-label="Open AI settings"`) or linked from AIStatusCard "Configure AI" text link (14px Inter, `--color-accent`, no underline by default, underline on hover).
 
 ---
 
