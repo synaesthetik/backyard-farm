@@ -77,7 +77,7 @@ Phase 3: Flock Management and Unified Dashboard
 
 - [ ] **Phase 1: Hardware Foundation and Sensor Pipeline** - Trustworthy sensor data flowing from edge nodes to hub; all hardware failsafes confirmed
 - [x] **Phase 2: Actuator Control, Alerts, and Dashboard V1** - Farmer monitors zones and flock, controls irrigation and coop, and acts on rule-based recommendations from a PWA dashboard (completed 2026-04-10)
-- [ ] **Phase 3: Flock Management and Unified Dashboard** - Complete flock tracking and single unified overview screen covering all zones and flock
+- [x] **Phase 3: Flock Management and Unified Dashboard** - Complete flock tracking and single unified overview screen covering all zones and flock (completed 2026-04-15)
 - [ ] **Phase 4: ONNX AI Layer and Recommendation Engine** - ML-backed recommendations replace rule-based engine behind the existing recommend-and-confirm UX
 - [ ] **Phase 5: Operational Hardening** - pH calibration workflows, push notifications, data retention policies, and sensor calibration management
 - [ ] **Phase 6: Hardware Shopping List and Wiring Diagrams** - Complete BOM, wiring diagrams for every connection, and smoke test procedures
@@ -178,12 +178,12 @@ Plans:
 **Plans**: 6 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Backend core: flock config store, egg estimator, production model, feed consumption, alert extensions, bridge integration
-- [ ] 03-02-PLAN.md — Frontend: TypeScript types, WS store extensions, TabBar 4-tab update, route restructure, Home tab, FlockSummaryCard, ZoneCard compact
-- [ ] 03-03-PLAN.md — CoopPanel extensions: egg count section, HenPresentIndicator, ProductionChart (uPlot), FeedSparkline (inline SVG), refresh button
-- [ ] 03-04-PLAN.md — FlockSettings form at /coop/settings: breed, hatch date, flock size, lighting, tare weight, hen threshold, egg weight
+- [x] 03-01-PLAN.md — Backend core: flock config store, egg estimator, production model, feed consumption, alert extensions, bridge integration
+- [x] 03-02-PLAN.md — Frontend: TypeScript types, WS store extensions, TabBar 4-tab update, route restructure, Home tab, FlockSummaryCard, ZoneCard compact
+- [x] 03-03-PLAN.md — CoopPanel extensions: egg count section, HenPresentIndicator, ProductionChart (uPlot), FeedSparkline (inline SVG), refresh button
+- [x] 03-04-PLAN.md — FlockSettings form at /coop/settings: breed, hatch date, flock size, lighting, tare weight, hen threshold, egg weight
 - [ ] 03-05-PLAN.md — Human verification checkpoint: Home tab, Coop tab, flock settings, alerts, mobile layout
-- [ ] 03-06-PLAN.md — Flock REST API router (config CRUD, egg-history, refresh-eggs) and WebSocket snapshot extensions
+- [x] 03-06-PLAN.md — Flock REST API router (config CRUD, egg-history, refresh-eggs) and WebSocket snapshot extensions
 
 **UI hint**: yes
 
@@ -289,7 +289,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Hardware Foundation and Sensor Pipeline | 8/8 | Complete | - |
 | 2. Actuator Control, Alerts, and Dashboard V1 | 6/7 | Gap closure in progress | 2026-04-10 |
-| 3. Flock Management and Unified Dashboard | 0/6 | Planned | - |
+| 3. Flock Management and Unified Dashboard | 5/6 | Complete    | 2026-04-15 |
 | 4. ONNX AI Layer and Recommendation Engine | 0/5 | Not started | - |
 | 5. Operational Hardening | 0/4 | Not started | - |
 | 6. Hardware Shopping List and Wiring Diagrams | 0/0 | Not started | - |
