@@ -59,11 +59,11 @@
 
 - [ ] **AI-01**: Recommendation queue UI shows pending recommendations with: action description, supporting sensor values, explanation of why recommended; farmer can approve or reject each
 - [ ] **AI-02**: Rule-based recommendation engine (Phase 2) generates irrigation and coop recommendations from threshold logic; same UX as ML-backed recommendations
-- [ ] **AI-03**: ONNX Runtime models (Phase 4) replace rule engine for zone health scoring, irrigation schedule optimization, and flock production anomaly detection
+- [x] **AI-03**: ONNX Runtime models (Phase 4) replace rule engine for zone health scoring, irrigation schedule optimization, and flock production anomaly detection
 - [ ] **AI-04**: Recommendations are deduplicated: if a pending recommendation of the same type exists for a zone, new duplicates are suppressed until the pending one is resolved
 - [ ] **AI-05**: After rejection, a back-off window prevents the same recommendation type from appearing again for a configurable period
 - [ ] **AI-06**: AI training uses only GOOD-quality-flagged sensor data; raw or SUSPECT readings are excluded from model training datasets
-- [ ] **AI-07**: Model maturity indicator in UI: shows recommendation count and approval/rejection rate per recommendation type (manages user expectations during cold start)
+- [x] **AI-07**: Model maturity indicator in UI: shows recommendation count and approval/rejection rate per recommendation type (manages user expectations during cold start)
 
 ### Dashboard & UI
 
@@ -174,11 +174,11 @@
 | FLOCK-06 | Phase 3 | Pending |
 | AI-01 | Phase 2 | Pending |
 | AI-02 | Phase 2 | Pending |
-| AI-03 | Phase 4 | Pending |
+| AI-03 | Phase 4 | Complete |
 | AI-04 | Phase 2 | Pending |
 | AI-05 | Phase 2 | Pending |
 | AI-06 | Phase 4 | Pending |
-| AI-07 | Phase 4 | Pending |
+| AI-07 | Phase 4 | Complete |
 | UI-01 | Phase 3 | Pending |
 | UI-02 | Phase 2 | Pending |
 | UI-03 | Phase 2 | Pending |

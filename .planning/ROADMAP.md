@@ -213,7 +213,7 @@ Plans:
 - [x] 04-01-PLAN.md — Data foundation: feature aggregator with GOOD-flag filter, maturity tracker, synthetic data generator CLI, new package dependencies
 - [x] 04-02-PLAN.md — ONNX inference service with hot-reload, three training pipelines (zone health, irrigation, flock anomaly) with regression protection
 - [x] 04-03-PLAN.md — Bridge integration: APScheduler inference scheduler, model watcher, AI/Rules toggle persistence, API settings endpoints
-- [ ] 04-04-PLAN.md — Dashboard UI: AIStatusCard, DomainMaturityRow, AISettingsToggle, settings route, RecommendationCard source badge, header settings icon
+- [x] 04-04-PLAN.md — Dashboard UI: AIStatusCard, DomainMaturityRow, AISettingsToggle, settings route, RecommendationCard source badge, header settings icon
 - [ ] 04-05-PLAN.md — Human verification checkpoint: full Phase 4 end-to-end integration test
 
 **UI hint**: yes
@@ -290,7 +290,7 @@ Plans:
 | 1. Hardware Foundation and Sensor Pipeline | 8/8 | Complete | - |
 | 2. Actuator Control, Alerts, and Dashboard V1 | 6/7 | Gap closure in progress | 2026-04-10 |
 | 3. Flock Management and Unified Dashboard | 5/6 | Complete    | 2026-04-15 |
-| 4. ONNX AI Layer and Recommendation Engine | 3/5 | In Progress|  |
+| 4. ONNX AI Layer and Recommendation Engine | 4/5 | In Progress|  |
 | 5. Operational Hardening | 0/4 | Not started | - |
 | 6. Hardware Shopping List and Wiring Diagrams | 0/0 | Not started | - |
 | 7. Interactive Tutorial and User Documentation | 0/0 | Not started | - |
