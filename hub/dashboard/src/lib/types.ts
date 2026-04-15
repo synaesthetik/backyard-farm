@@ -47,6 +47,7 @@ export interface Recommendation {
   action_description: string;
   sensor_reading: string;
   explanation: string;
+  source?: 'ai' | 'rules';
 }
 
 export interface AlertStateDelta {
@@ -108,6 +109,7 @@ export interface DashboardSnapshot {
   coop_schedule: CoopSchedule | null;
   egg_count: { today: number; hen_present: boolean; raw_weight_grams: number | null; updated_at: string } | null;
   feed_consumption: { rate_grams_per_day: number; weekly: number[] } | null;
+  model_maturity: ModelMaturityEntry[] | null;
 }
 
 export interface SensorDelta {
@@ -139,7 +141,8 @@ export type WSMessage =
   | WaterLevelDelta
   | CoopScheduleDelta
   | NestingBoxDelta
-  | FeedConsumptionDelta;
+  | FeedConsumptionDelta
+  | ModelMaturityDelta;
 
 // Phase 3 types
 
@@ -168,4 +171,25 @@ export interface FeedConsumptionDelta {
   type: 'feed_consumption';
   rate_grams_per_day: number;
   weekly: number[];
+}
+
+// Phase 4 types
+
+export type AIDomain = 'irrigation' | 'zone_health' | 'flock_anomaly';
+export type AIMode = 'ai' | 'rules';
+
+export interface ModelMaturityEntry {
+  domain: AIDomain;
+  mode: AIMode;
+  weeks_of_data: number;
+  good_flag_ratio: number;
+  recommendation_count: number;
+  approved_count: number;
+  rejected_count: number;
+  gate_passed: boolean;
+}
+
+export interface ModelMaturityDelta {
+  type: 'model_maturity';
+  entries: ModelMaturityEntry[];
 }

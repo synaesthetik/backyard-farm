@@ -2,6 +2,7 @@
   import { dashboardStore } from '$lib/ws.svelte';
   import ZoneCard from '$lib/ZoneCard.svelte';
   import FlockSummaryCard from '$lib/FlockSummaryCard.svelte';
+  import AIStatusCard from '$lib/AIStatusCard.svelte';
 </script>
 
 <svelte:head>
@@ -11,6 +12,7 @@
 <div class="home-layout">
   <!-- FlockSummaryCard: top on mobile, right column on desktop -->
   <div class="flock-col">
+    <AIStatusCard />
     <FlockSummaryCard />
   </div>
 
@@ -45,6 +47,9 @@
 
   .flock-col {
     order: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
   }
 
   .zones-col {

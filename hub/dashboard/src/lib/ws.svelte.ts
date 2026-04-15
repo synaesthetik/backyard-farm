@@ -5,7 +5,7 @@
  * Stale logic runs client-side using received_at (INFRA-06).
  * Values are NOT cleared on disconnect — stale display is more useful than blank.
  */
-import type { ZoneState, NodeState, SensorReading, ConnectionStatus, WSMessage, AlertEntry, Recommendation, HealthScore, CoopSchedule, NestingBoxDelta, FeedConsumptionDelta } from './types';
+import type { ZoneState, NodeState, SensorReading, ConnectionStatus, WSMessage, AlertEntry, Recommendation, HealthScore, CoopSchedule, NestingBoxDelta, FeedConsumptionDelta, ModelMaturityEntry, ModelMaturityDelta } from './types';
 
 const STALE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes (INFRA-06)
 const RECONNECT_BASE_MS = 1000;
@@ -24,6 +24,7 @@ class DashboardStore {
   coopSchedule = $state<CoopSchedule | null>(null);
   eggCount = $state<{ today: number; hen_present: boolean; raw_weight_grams: number | null; updated_at: string } | null>(null);
   feedConsumption = $state<{ rate_grams_per_day: number; weekly: number[] } | null>(null);
+  modelMaturity = $state<ModelMaturityEntry[] | null>(null);
 
   private ws: WebSocket | null = null;
   private reconnectDelay = RECONNECT_BASE_MS;
@@ -96,6 +97,7 @@ class DashboardStore {
       this.coopSchedule = msg.coop_schedule ?? null;
       this.eggCount = msg.egg_count ?? null;
       this.feedConsumption = msg.feed_consumption ?? null;
+      this.modelMaturity = msg.model_maturity ?? null;
     } else if (msg.type === 'sensor_update') {
       const existing = this.zones.get(msg.zone_id) ?? {
         zone_id: msg.zone_id,
@@ -153,6 +155,8 @@ class DashboardStore {
       };
     } else if (msg.type === 'feed_consumption') {
       this.feedConsumption = { rate_grams_per_day: msg.rate_grams_per_day, weekly: msg.weekly };
+    } else if (msg.type === 'model_maturity') {
+      this.modelMaturity = msg.entries;
     }
   }
 
