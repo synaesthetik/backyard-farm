@@ -8,7 +8,8 @@ Pipeline per reading:
   4. Check stuck detection (INFRA-07, D-12)
   5. INSERT into TimescaleDB sensor_readings hypertable
   6. Evaluate rules / alerts / health score (Phase 2)
-  7. Broadcast delta to WebSocket clients via HTTP notify
+  7. Phase 4: ONNX inference (AI-03) and threshold-crossing re-inference (AI-03)
+  8. Broadcast delta to WebSocket clients via HTTP notify
 """
 import asyncio
 import json
@@ -40,6 +41,14 @@ from production_model import (
     BREED_LAY_RATES,
 )
 from feed_consumption import compute_daily_feed_consumption
+
+# Phase 4 inference imports
+from inference.feature_aggregator import FeatureAggregator
+from inference.inference_service import InferenceService
+from inference.inference_scheduler import InferenceScheduler
+from inference.maturity_tracker import MaturityTracker
+from inference.ai_settings import AISettings
+from inference.model_watcher import start_model_watcher
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s")
@@ -77,6 +86,11 @@ zone_config_store = ZoneConfigStore()
 
 # Phase 3 flock instances
 flock_config_store = FlockConfigStore()
+
+# Phase 4 inference instances
+ai_settings = AISettings()
+inference_scheduler = None  # initialized in main() after db_pool
+_maturity_tracker = None   # initialized in main() after db_pool
 
 # In-memory zone sensor cache for health score computation
 # Structure: { zone_id: { sensor_type: {"value": float, "quality": str} } }
@@ -154,6 +168,12 @@ async def _evaluate_phase2(zone_id: str, sensor_type: str, value: float, quality
             "type": "recommendation_queue",
             "recommendations": rule_engine.get_pending_recommendations(),
         })
+        # Phase 4 (AI-03): threshold crossing detected — trigger immediate AI re-inference
+        # so the ONNX model re-evaluates the zone without waiting for the next scheduled cycle.
+        # trigger_zone_reinference() checks AI/Rules toggle internally and is a no-op when
+        # mode is "rules" or no model is loaded.
+        if inference_scheduler is not None:
+            asyncio.create_task(inference_scheduler.trigger_zone_reinference(zone_id))
 
     # --- Alert engine: evaluate threshold crossings ---
     alert_changed = False
@@ -311,6 +331,11 @@ async def _handle_approve(request: web.Request) -> web.Response:
             status=404
         )
 
+    # Phase 4: record approval in maturity tracker (AI-07)
+    if _maturity_tracker is not None:
+        _maturity_tracker.record_approval("irrigation")
+        await _maturity_tracker.persist_to_db()
+
     # Read zone-configured target VWC from DB (not hardcoded)
     target_vwc = await _bridge_read_vwc_high_threshold(zone_id, db_pool)
 
@@ -356,6 +381,11 @@ async def _handle_reject(request: web.Request) -> web.Response:
 
     rule_engine.reject(recommendation_id)
 
+    # Phase 4: record rejection in maturity tracker (AI-07)
+    if _maturity_tracker is not None:
+        _maturity_tracker.record_rejection("irrigation")
+        await _maturity_tracker.persist_to_db()
+
     # Broadcast updated recommendation queue to dashboard
     await notify_api({
         "type": "recommendation_queue",
@@ -365,11 +395,60 @@ async def _handle_reject(request: web.Request) -> web.Response:
     return web.json_response({"status": "rejected"})
 
 
+async def _handle_get_ai_settings(request: web.Request) -> web.Response:
+    """GET /internal/ai-settings — return current AI/Rules toggle state."""
+    return web.json_response(ai_settings.get_all())
+
+
+async def _handle_patch_ai_settings(request: web.Request) -> web.Response:
+    """PATCH /internal/ai-settings — update a single domain toggle.
+
+    Body: {"domain": "irrigation"|"zone_health"|"flock_anomaly", "mode": "ai"|"rules"}
+    Takes effect on the next inference cycle (D-06 — no restart required).
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON body"}, status=400)
+
+    domain = body.get("domain", "")
+    mode = body.get("mode", "")
+
+    try:
+        ai_settings.set_mode(domain, mode)
+    except ValueError as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+
+    return web.json_response(ai_settings.get_all())
+
+
+async def _handle_get_model_maturity(request: web.Request) -> web.Response:
+    """GET /internal/model-maturity — return maturity tracker state plus per-zone data maturity."""
+    maturity_states = _maturity_tracker.get_all_maturity_states() if _maturity_tracker else []
+
+    # Append per-zone data maturity from feature aggregator
+    db_pool = request.app["db_pool"]
+    zone_data_maturity = []
+    try:
+        feature_aggregator = FeatureAggregator(db_pool)
+        for zone_id in zone_config_store:
+            zone_maturity = await feature_aggregator.check_data_maturity(zone_id)
+            zone_data_maturity.append(zone_maturity)
+    except Exception as exc:
+        logger.warning("Failed to fetch zone data maturity: %s", exc)
+
+    return web.json_response({
+        "domain_maturity": maturity_states,
+        "zone_data_maturity": zone_data_maturity,
+    })
+
+
 async def run_internal_server(db_pool: asyncpg.Pool):
     """Run internal HTTP server on port 8001 for cross-process IPC.
 
     Exposes approve/reject recommendation endpoints so the API process
     can drive rule_engine and irrigation_loop (which live in bridge).
+    Phase 4 adds AI settings and model maturity endpoints.
     Port 8001 is NOT exposed to the host in docker-compose — internal only.
     """
     app = web.Application()
@@ -382,6 +461,10 @@ async def run_internal_server(db_pool: asyncpg.Pool):
         "/internal/recommendations/{recommendation_id}/reject",
         _handle_reject
     )
+    # Phase 4: AI settings toggle and model maturity endpoints
+    app.router.add_get("/internal/ai-settings", _handle_get_ai_settings)
+    app.router.add_route("PATCH", "/internal/ai-settings", _handle_patch_ai_settings)
+    app.router.add_get("/internal/model-maturity", _handle_get_model_maturity)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", 8001)
@@ -704,6 +787,38 @@ async def main():
     await zone_config_store.load_from_db(db_pool)
     await flock_config_store.load_from_db(db_pool)
 
+    # Phase 4: Initialize inference components
+    global inference_scheduler, _maturity_tracker
+    feature_aggregator = FeatureAggregator(db_pool)
+    _maturity_tracker = MaturityTracker(db_pool)
+    await _maturity_tracker.ensure_table()
+    await _maturity_tracker.load_from_db()
+
+    inference_services = {
+        "zone_health": InferenceService("zone_health"),
+        "irrigation": InferenceService("irrigation"),
+        "flock_anomaly": InferenceService("flock_anomaly"),
+    }
+
+    inference_scheduler = InferenceScheduler(
+        db_pool=db_pool,
+        feature_aggregator=feature_aggregator,
+        inference_services=inference_services,
+        maturity_tracker=_maturity_tracker,
+        ai_settings=ai_settings,
+        zone_config_store=zone_config_store,
+        notify_callback=notify_api,
+    )
+    inference_scheduler.start()
+
+    # Start model file watcher (D-09) — daemon thread, safe alongside asyncio
+    models_dir = os.path.join(os.path.dirname(__file__), "..", "models")
+    os.makedirs(models_dir, exist_ok=True)
+    start_model_watcher(models_dir, inference_services)
+    logger.info("Phase 4 inference components initialized")
+
+    # APScheduler runs cooperatively in the event loop (04-RESEARCH.md Pattern 4).
+    # No new coroutine needed in gather() — scheduler attaches to existing loop.
     await asyncio.gather(
         bridge_loop(db_pool),
         coop_scheduler_loop(notify_callback=notify_api),

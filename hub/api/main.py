@@ -17,6 +17,7 @@ from history_router import router as history_router
 from recommendation_router import router as recommendation_router
 import recommendation_router as rec_router_module
 import flock_router
+from inference_settings_router import router as inference_settings_router
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,7 @@ app.include_router(actuator_router)
 app.include_router(history_router)
 app.include_router(recommendation_router)
 app.include_router(flock_router.router)
+app.include_router(inference_settings_router)
 
 _db_pool = None
 
