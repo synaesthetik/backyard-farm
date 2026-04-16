@@ -101,10 +101,11 @@ New components introduced in Phase 5 (follow established Svelte 5 / CSS variable
 
 ### CalibrationStatusBadge
 - Pill badge: text "Due in N days" or "OVERDUE"
-- Overdue state: background `var(--color-stale)`, text `#0f1117`, 12px/400
+- Overdue state: background `var(--color-stale)`, text `#0f1117`, 14px/400
 - Due soon (< 3 days): same amber color
-- OK state: background `var(--color-border)`, text `var(--color-text-secondary)`, 12px/400
+- OK state: background `var(--color-border)`, text `var(--color-text-secondary)`, 14px/400
 - Border-radius: 4px (matches existing quality-badge)
+- Visual differentiation from surrounding text is provided by background color and border-radius — no smaller font size is needed
 
 ### CalibrationRow (used in /settings/calibration table)
 - Layout: flex row, align-items center, `min-height: 44px`
