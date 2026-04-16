@@ -4,8 +4,8 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 5 UI-SPEC approved
-last_updated: "2026-04-16T16:28:14.813Z"
-last_activity: 2026-04-16 -- Phase 5 planning complete
+last_updated: "2026-04-16T19:54:24.620Z"
+last_activity: 2026-04-16 -- Phase 05 execution started
 progress:
   total_phases: 7
   completed_phases: 3
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-01)
 
 **Core value:** A single dashboard where you can see every zone's sensor readings, irrigation status, and flock health at a glance — and act on AI recommendations without leaving it.
-**Current focus:** Phase 04 — ONNX AI Layer and Recommendation Engine
+**Current focus:** Phase 05 — operational-hardening
 
 ## Current Position
 
-Phase: 04 (ONNX AI Layer and Recommendation Engine) — EXECUTING
-Plan: 3 of 5
-Status: Ready to execute
-Last activity: 2026-04-16 -- Phase 5 planning complete
+Phase: 05 (operational-hardening) — EXECUTING
+Plan: 1 of 4
+Status: Executing Phase 05
+Last activity: 2026-04-16 -- Phase 05 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
