@@ -1,7 +1,7 @@
 """Tests for alert_engine.py — alert evaluation with debounce and hysteresis."""
 import pytest
 
-from alert_engine import AlertEngine
+from alert_engine import AlertEngine, ALERT_DEFINITIONS
 
 
 class TestAlertEngineFire:
@@ -140,3 +140,34 @@ class TestAlertEngineGrouping:
         p1_idx = next((i for i, s in enumerate(severities) if s == "P1"), None)
         if p0_idx is not None and p1_idx is not None:
             assert p0_idx < p1_idx
+
+
+class TestPhCalibrationOverdueAlert:
+    def test_ph_calibration_overdue_in_definitions(self):
+        """ph_calibration_overdue must be in ALERT_DEFINITIONS."""
+        assert "ph_calibration_overdue" in ALERT_DEFINITIONS
+
+    def test_ph_calibration_overdue_severity_is_p1(self):
+        """ph_calibration_overdue severity must be P1."""
+        severity, _, _ = ALERT_DEFINITIONS["ph_calibration_overdue"]
+        assert severity == "P1"
+
+    def test_ph_calibration_overdue_message_format(self):
+        """ph_calibration_overdue message template contains 'pH calibration overdue'."""
+        _, msg_template, _ = ALERT_DEFINITIONS["ph_calibration_overdue"]
+        assert "pH calibration overdue" in msg_template
+
+    def test_ph_calibration_overdue_deep_link(self):
+        """ph_calibration_overdue deep_link template is '/zones/{zone_id}'."""
+        _, _, deep_link = ALERT_DEFINITIONS["ph_calibration_overdue"]
+        assert deep_link == "/zones/{zone_id}"
+
+    def test_set_and_clear_calibration_alert(self):
+        """set_alert for ph_calibration_overdue appears in state; clear removes it."""
+        engine = AlertEngine()
+        engine.set_alert("ph_calibration_overdue:zone-01")
+        state = engine.get_alert_state()
+        assert any("ph_calibration_overdue" in a["key"] for a in state)
+        engine.clear_alert("ph_calibration_overdue:zone-01")
+        state = engine.get_alert_state()
+        assert not any("ph_calibration_overdue" in a["key"] for a in state)
