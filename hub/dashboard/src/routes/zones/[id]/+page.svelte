@@ -5,8 +5,9 @@
   import HealthBadge from '$lib/HealthBadge.svelte';
   import CommandButton from '$lib/CommandButton.svelte';
   import SensorChart from '$lib/SensorChart.svelte';
+  import CalibrationStatusBadge from '$lib/CalibrationStatusBadge.svelte';
   import { Droplets, FlaskConical, Thermometer } from 'lucide-svelte';
-  import type { HealthScore } from '$lib/types';
+  import type { HealthScore, CalibrationEntry } from '$lib/types';
 
   const zoneId = $derived($page.params.id);
   const zone = $derived(dashboardStore.zones.get(zoneId));
@@ -19,6 +20,50 @@
 
   let irrigateLoading = $state(false);
   let chartDays = $state(7);
+  let phCalibration = $state<CalibrationEntry | null>(null);
+  let calibrationRecording = $state(false);
+
+  $effect(() => {
+    const id = zoneId;
+    fetch('/api/calibrations')
+      .then(r => r.ok ? r.json() : [])
+      .then((entries: CalibrationEntry[]) => {
+        phCalibration = entries.find(e => e.zone_id === id && e.sensor_type === 'ph') ?? null;
+      })
+      .catch(() => { phCalibration = null; });
+  });
+
+  async function recordPhCalibration() {
+    calibrationRecording = true;
+    try {
+      const res = await fetch(`/api/calibrations/${zoneId}/ph/record`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ offset: 0.0 }),
+      });
+      if (res.ok) {
+        window.dispatchEvent(new CustomEvent('farm:toast', {
+          detail: { message: `Calibration recorded for ${zoneId} pH sensor` },
+        }));
+        // Refresh calibration status
+        const r = await fetch('/api/calibrations');
+        if (r.ok) {
+          const entries: CalibrationEntry[] = await r.json();
+          phCalibration = entries.find(e => e.zone_id === zoneId && e.sensor_type === 'ph') ?? null;
+        }
+      } else {
+        window.dispatchEvent(new CustomEvent('farm:toast', {
+          detail: { message: 'Calibration save failed \u2014 check connection' },
+        }));
+      }
+    } catch {
+      window.dispatchEvent(new CustomEvent('farm:toast', {
+        detail: { message: 'Calibration save failed \u2014 check connection' },
+      }));
+    } finally {
+      calibrationRecording = false;
+    }
+  }
 
   async function sendIrrigationCommand(action: 'open' | 'close') {
     irrigateLoading = true;
@@ -80,6 +125,19 @@
     {/if}
     {#if zone.ph}
       <SensorValue icon={FlaskConical} label="pH" value={zone.ph.value} unit="" quality={zone.ph.quality} />
+      <div class="ph-calibration-action">
+        {#if phCalibration && (phCalibration.days_since_calibration === null || phCalibration.days_since_calibration > 14)}
+          <CalibrationStatusBadge days_since={phCalibration.days_since_calibration} />
+        {/if}
+        <button
+          class="calibrate-btn"
+          disabled={calibrationRecording}
+          aria-busy={calibrationRecording}
+          onclick={recordPhCalibration}
+        >
+          {calibrationRecording ? 'Recording...' : 'Record Calibration'}
+        </button>
+      </div>
     {/if}
     {#if zone.temperature}
       <SensorValue icon={Thermometer} label="Temperature" value={zone.temperature.value} unit="°C" quality={zone.temperature.quality} />
@@ -137,6 +195,31 @@
   }
   .sensors-section {
     margin-bottom: var(--spacing-lg);
+  }
+
+  .ph-calibration-action {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-xs) 0 var(--spacing-sm);
+  }
+
+  .calibrate-btn {
+    min-height: 44px;
+    padding: 0 var(--spacing-md);
+    background: none;
+    border: none;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--color-accent);
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  .calibrate-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
   .charts-section {
     margin-bottom: var(--spacing-lg);

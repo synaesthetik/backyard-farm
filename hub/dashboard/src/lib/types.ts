@@ -193,3 +193,39 @@ export interface ModelMaturityDelta {
   type: 'model_maturity';
   entries: ModelMaturityEntry[];
 }
+
+// Phase 5 types
+
+export interface CalibrationEntry {
+  zone_id: string;
+  sensor_type: string;
+  offset_value: number;
+  dry_value: number | null;
+  wet_value: number | null;
+  temp_coefficient: number;
+  last_calibration_date: string | null; // ISO 8601 or null
+  days_since_calibration: number | null;
+}
+
+export interface NtfySettings {
+  url: string;
+  topic: string;
+  enabled: boolean;
+}
+
+export interface StorageTableInfo {
+  tablename: string;
+  size: string;
+  size_bytes: number;
+}
+
+export interface StorageStats {
+  tables: StorageTableInfo[];
+  retention_policies: Array<{
+    hypertable_name: string;
+    schedule_interval: string;
+    config: Record<string, unknown>;
+  }>;
+  total_size: string;
+  total_bytes: number;
+}
