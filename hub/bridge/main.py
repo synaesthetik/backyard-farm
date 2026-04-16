@@ -395,6 +395,84 @@ async def _handle_reject(request: web.Request) -> web.Response:
     return web.json_response({"status": "rejected"})
 
 
+async def _handle_get_calibrations(request: web.Request) -> web.Response:
+    """GET /internal/calibrations — return all calibration entries."""
+    return web.json_response(calibration_store.get_all_calibrations())
+
+
+async def _handle_record_calibration(request: web.Request) -> web.Response:
+    """POST /internal/calibrations/{zone_id}/{sensor_type}/record
+
+    Records a calibration event: UPSERTs with last_calibration_date = NOW().
+    After recording, checks and clears any ph_calibration_overdue alert for the zone.
+    Body: JSON with optional fields: offset (float), dry_value (float|null),
+          wet_value (float|null), temp_coefficient (float, default 0.0).
+    """
+    zone_id = request.match_info["zone_id"]
+    sensor_type = request.match_info["sensor_type"]
+    db_pool = request.app["db_pool"]
+
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON body"}, status=400)
+
+    offset = body.get("offset")
+    if offset is None:
+        return web.json_response({"error": "offset is required"}, status=400)
+    try:
+        offset = float(offset)
+    except (TypeError, ValueError):
+        return web.json_response({"error": "offset must be a number"}, status=400)
+
+    dry_value = body.get("dry_value")
+    wet_value = body.get("wet_value")
+    temp_coefficient = float(body.get("temp_coefficient", 0.0))
+
+    await calibration_store.record_calibration(
+        zone_id, sensor_type, offset, db_pool,
+        dry_value=dry_value,
+        wet_value=wet_value,
+        temp_coefficient=temp_coefficient,
+    )
+
+    # Clear ph_calibration_overdue alert if it was active (D-01)
+    if sensor_type == "ph":
+        alert_key = f"ph_calibration_overdue:{zone_id}"
+        if alert_key in alert_engine._active_alerts:
+            alert_engine.clear_alert(alert_key)
+            await notify_api({
+                "type": "alert_state",
+                "alerts": alert_engine.get_alert_state(),
+            })
+
+    return web.json_response({"status": "recorded", "zone_id": zone_id, "sensor_type": sensor_type})
+
+
+async def _handle_patch_calibration(request: web.Request) -> web.Response:
+    """PATCH /internal/calibrations/{zone_id}/{sensor_type}
+
+    Updates specific calibration fields without setting last_calibration_date.
+    Body: JSON with any subset of {offset_value, dry_value, wet_value, temp_coefficient}.
+    """
+    zone_id = request.match_info["zone_id"]
+    sensor_type = request.match_info["sensor_type"]
+    db_pool = request.app["db_pool"]
+
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON body"}, status=400)
+
+    allowed = {"offset_value", "dry_value", "wet_value", "temp_coefficient"}
+    fields = {k: v for k, v in body.items() if k in allowed}
+    if not fields:
+        return web.json_response({"error": "No valid fields provided"}, status=400)
+
+    await calibration_store.update_calibration_fields(zone_id, sensor_type, db_pool, **fields)
+    return web.json_response({"status": "updated", "zone_id": zone_id, "sensor_type": sensor_type})
+
+
 async def _handle_get_ai_settings(request: web.Request) -> web.Response:
     """GET /internal/ai-settings — return current AI/Rules toggle state."""
     return web.json_response(ai_settings.get_all())
@@ -465,6 +543,16 @@ async def run_internal_server(db_pool: asyncpg.Pool):
     app.router.add_get("/internal/ai-settings", _handle_get_ai_settings)
     app.router.add_route("PATCH", "/internal/ai-settings", _handle_patch_ai_settings)
     app.router.add_get("/internal/model-maturity", _handle_get_model_maturity)
+    # Phase 5: Calibration endpoints
+    app.router.add_get("/internal/calibrations", _handle_get_calibrations)
+    app.router.add_post(
+        "/internal/calibrations/{zone_id}/{sensor_type}/record",
+        _handle_record_calibration,
+    )
+    app.router.add_route(
+        "PATCH", "/internal/calibrations/{zone_id}/{sensor_type}",
+        _handle_patch_calibration,
+    )
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", 8001)
@@ -495,6 +583,35 @@ async def _evaluate_phase3_nesting_box(zone_id: str, value: float, quality_str: 
         "raw_weight_grams": value,
         "updated_at": updated_at.isoformat(),
     })
+
+
+async def periodic_calibration_check(db_pool: asyncpg.Pool):
+    """Hourly check: fire/clear ph_calibration_overdue alerts per zone (D-01)."""
+    while True:
+        await asyncio.sleep(60 * 60)  # 1 hour
+        try:
+            rows = await db_pool.fetch(
+                "SELECT zone_id FROM calibration_offsets WHERE sensor_type = 'ph'"
+            )
+            alert_changed = False
+            for row in rows:
+                zone_id = row["zone_id"]
+                alert_key = f"ph_calibration_overdue:{zone_id}"
+                is_overdue = calibration_store.is_overdue(zone_id, "ph")
+                was_active = alert_key in alert_engine._active_alerts
+                if is_overdue and not was_active:
+                    alert_engine.set_alert(alert_key)
+                    alert_changed = True
+                elif not is_overdue and was_active:
+                    alert_engine.clear_alert(alert_key)
+                    alert_changed = True
+            if alert_changed:
+                await notify_api({
+                    "type": "alert_state",
+                    "alerts": alert_engine.get_alert_state(),
+                })
+        except Exception as e:
+            logger.error("periodic_calibration_check error: %s", e)
 
 
 async def periodic_flock_loop(db_pool: asyncpg.Pool):
@@ -825,6 +942,7 @@ async def main():
         run_internal_server(db_pool),
         periodic_flock_loop(db_pool),
         daily_feed_loop(db_pool),
+        periodic_calibration_check(db_pool),
     )
 
 
