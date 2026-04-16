@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS calibration_offsets (
   wet_value   DOUBLE PRECISION,
   temp_coefficient DOUBLE PRECISION DEFAULT 0.0,
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  last_calibration_date TIMESTAMPTZ,
   PRIMARY KEY (zone_id, sensor_type)
 );
 
@@ -80,3 +81,32 @@ CREATE TABLE IF NOT EXISTS feed_daily_consumption (
   refill_detected    BOOLEAN NOT NULL DEFAULT FALSE,
   updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Phase 5: Hourly rollup continuous aggregate for long-term data retention (D-11)
+CREATE MATERIALIZED VIEW IF NOT EXISTS sensor_readings_hourly
+WITH (timescaledb.continuous) AS
+SELECT
+    time_bucket('1 hour', time) AS bucket,
+    zone_id,
+    sensor_type,
+    AVG(value)   AS avg_value,
+    MIN(value)   AS min_value,
+    MAX(value)   AS max_value,
+    COUNT(*)     AS reading_count
+FROM sensor_readings
+WHERE quality = 'GOOD'
+GROUP BY bucket, zone_id, sensor_type
+WITH NO DATA;
+
+-- Cagg refresh policy: start_offset 7 days MUST be < raw retention 90 days (Pitfall 1)
+SELECT add_continuous_aggregate_policy('sensor_readings_hourly',
+    start_offset      => INTERVAL '7 days',
+    end_offset        => INTERVAL '1 hour',
+    schedule_interval => INTERVAL '1 hour'
+);
+
+-- Raw data retention: 90 days (D-10)
+SELECT add_retention_policy('sensor_readings', INTERVAL '90 days');
+
+-- Rollup retention: 2 years / 730 days (D-11)
+SELECT add_retention_policy('sensor_readings_hourly', INTERVAL '730 days');

@@ -58,10 +58,16 @@ class TestCalibrationOverdue:
         assert store.is_overdue("zone-01", "ph") is False
 
     def test_not_overdue_at_exactly_14_days(self):
-        """is_overdue returns False at exactly 14 days (overdue is strictly >14 days)."""
+        """is_overdue returns False just under 14 days ago (overdue is strictly >14 days).
+
+        Uses 14 days minus 5 seconds to avoid microsecond timing drift in CI.
+        The boundary is >14 days — anything <= 14 days is not overdue.
+        """
         store = CalibrationStore()
         store.set_offset("zone-01", "ph", 0.0)
-        store._calibration_dates[("zone-01", "ph")] = datetime.now(timezone.utc) - timedelta(days=14)
+        store._calibration_dates[("zone-01", "ph")] = (
+            datetime.now(timezone.utc) - timedelta(days=14) + timedelta(seconds=5)
+        )
         assert store.is_overdue("zone-01", "ph") is False
 
     def test_get_all_calibrations_returns_all_fields(self):

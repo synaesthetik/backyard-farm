@@ -43,6 +43,7 @@ ALERT_DEFINITIONS = {
     "node_offline": ("P0", "Node offline \u2014 {node_id}", "/"),
     "production_drop": ("P1", "Production drop \u2014 eggs below expected", "/coop"),
     "feed_consumption_drop": ("P1", "Feed consumption drop", "/coop"),
+    "ph_calibration_overdue": ("P1", "pH calibration overdue \u2014 {zone_id}", "/zones/{zone_id}"),
 }
 
 
