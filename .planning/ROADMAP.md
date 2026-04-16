@@ -233,13 +233,13 @@ Plans:
   2. Self-hosted ntfy integration (if configured) delivers push notifications to iOS and Android for the same events that trigger in-app alerts; in-app alerts remain the baseline and ntfy is additive
   3. Raw sensor data older than 90 days is automatically purged; hourly rollup aggregates are retained for 2 years; the dashboard reflects actual storage usage
 
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 05-01: pH calibration workflow — calibration date tracking per sensor, due-date reminder UI, calibration offset storage and application at ingestion
-- [ ] 05-02: Sensor calibration management — per-sensor dry/wet values and temperature coefficient stored on hub, push-to-node on config update
-- [ ] 05-03: Data retention policies — raw data 90-day purge, hourly rollup 2-year retention, TimescaleDB retention policy configuration
-- [ ] 05-04: Self-hosted ntfy push notification integration — optional configuration, iOS/Android delivery, parity with in-app alert event list
+- [ ] 05-01-PLAN.md — pH calibration backend: DB migration, CalibrationStore extension, AlertEngine overdue alert, periodic check loop, calibration API router
+- [ ] 05-02-PLAN.md — ntfy push notification backend: NtfySettings sidecar, ntfy dispatch, bridge integration, ntfy/storage API routers, data retention DDL
+- [ ] 05-03-PLAN.md — All frontend: calibration settings page, ntfy settings page, storage settings page, zone detail inline action, settings navigation
+- [ ] 05-04-PLAN.md — Human verification checkpoint: full Phase 5 end-to-end feature verification
 
 **UI hint**: yes
 
@@ -291,7 +291,7 @@ Plans:
 | 2. Actuator Control, Alerts, and Dashboard V1 | 6/7 | Gap closure in progress | 2026-04-10 |
 | 3. Flock Management and Unified Dashboard | 5/6 | Complete    | 2026-04-15 |
 | 4. ONNX AI Layer and Recommendation Engine | 4/5 | In Progress|  |
-| 5. Operational Hardening | 0/4 | Not started | - |
+| 5. Operational Hardening | 0/4 | Planned | - |
 | 6. Hardware Shopping List and Wiring Diagrams | 0/0 | Not started | - |
 | 7. Interactive Tutorial and User Documentation | 0/0 | Not started | - |
 
