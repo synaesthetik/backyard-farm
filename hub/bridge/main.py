@@ -50,6 +50,10 @@ from inference.maturity_tracker import MaturityTracker
 from inference.ai_settings import AISettings
 from inference.model_watcher import start_model_watcher
 
+# Phase 5: ntfy push notification imports (NOTF-03)
+from ntfy_settings import NtfySettings
+from ntfy import send_ntfy_notification, send_ntfy_test
+
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s")
 logger = logging.getLogger("bridge")
@@ -91,6 +95,9 @@ flock_config_store = FlockConfigStore()
 ai_settings = AISettings()
 inference_scheduler = None  # initialized in main() after db_pool
 _maturity_tracker = None   # initialized in main() after db_pool
+
+# Phase 5: ntfy settings instance (NOTF-03, D-06, D-07, D-09)
+ntfy_settings = NtfySettings()
 
 # In-memory zone sensor cache for health score computation
 # Structure: { zone_id: { sensor_type: {"value": float, "quality": str} } }
@@ -244,6 +251,7 @@ async def _evaluate_phase2(zone_id: str, sensor_type: str, value: float, quality
             "type": "alert_state",
             "alerts": alert_engine.get_alert_state(),
         })
+        asyncio.create_task(_dispatch_ntfy_for_alerts())
 
     # --- Health score computation ---
     zone_cache = _zone_sensor_cache.get(zone_id, {})
@@ -313,6 +321,51 @@ async def _bridge_read_vwc_high_threshold(zone_id: str, db_pool: asyncpg.Pool) -
     except Exception as e:
         logger.warning("Failed to read zone config for %s: %s", zone_id, e)
     return 60.0
+
+
+async def _dispatch_ntfy_for_alerts() -> None:
+    """Send ntfy notifications for current alert state (fire-and-forget, NOTF-03).
+
+    Only called when alert state changes — not on every evaluation cycle.
+    Uses asyncio.create_task() at call site to keep it non-blocking (T-05-06).
+    """
+    if not ntfy_settings.is_enabled():
+        return
+    for alert in alert_engine.get_alert_state():
+        asyncio.create_task(send_ntfy_notification(ntfy_settings, alert))
+
+
+async def _handle_get_ntfy_settings(request: web.Request) -> web.Response:
+    """GET /internal/ntfy-settings — return current ntfy settings."""
+    return web.json_response(ntfy_settings.get_all())
+
+
+async def _handle_patch_ntfy_settings(request: web.Request) -> web.Response:
+    """PATCH /internal/ntfy-settings — update ntfy settings fields.
+
+    Body: JSON with any subset of {url, topic, enabled}.
+    Takes effect immediately — no bridge restart required.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON body"}, status=400)
+
+    allowed = {"url", "topic", "enabled"}
+    fields = {k: v for k, v in body.items() if k in allowed}
+    if not fields:
+        return web.json_response({"error": "No valid fields provided"}, status=400)
+
+    ntfy_settings.update(**fields)
+    return web.json_response(ntfy_settings.get_all())
+
+
+async def _handle_ntfy_test(request: web.Request) -> web.Response:
+    """POST /internal/ntfy-test — send a test notification via ntfy."""
+    ok, msg = await send_ntfy_test(ntfy_settings)
+    if ok:
+        return web.json_response({"status": "ok"})
+    return web.json_response({"status": "error", "message": msg}, status=502)
 
 
 async def _handle_approve(request: web.Request) -> web.Response:
@@ -543,6 +596,10 @@ async def run_internal_server(db_pool: asyncpg.Pool):
     app.router.add_get("/internal/ai-settings", _handle_get_ai_settings)
     app.router.add_route("PATCH", "/internal/ai-settings", _handle_patch_ai_settings)
     app.router.add_get("/internal/model-maturity", _handle_get_model_maturity)
+    # Phase 5: ntfy settings and test endpoints (NOTF-03)
+    app.router.add_get("/internal/ntfy-settings", _handle_get_ntfy_settings)
+    app.router.add_route("PATCH", "/internal/ntfy-settings", _handle_patch_ntfy_settings)
+    app.router.add_post("/internal/ntfy-test", _handle_ntfy_test)
     # Phase 5: Calibration endpoints
     app.router.add_get("/internal/calibrations", _handle_get_calibrations)
     app.router.add_post(
@@ -610,6 +667,7 @@ async def periodic_calibration_check(db_pool: asyncpg.Pool):
                     "type": "alert_state",
                     "alerts": alert_engine.get_alert_state(),
                 })
+                asyncio.create_task(_dispatch_ntfy_for_alerts())
         except Exception as e:
             logger.error("periodic_calibration_check error: %s", e)
 
@@ -705,6 +763,7 @@ async def periodic_flock_loop(db_pool: asyncpg.Pool):
                             "type": "alert_state",
                             "alerts": alert_engine.get_alert_state(),
                         })
+                        asyncio.create_task(_dispatch_ntfy_for_alerts())
 
         except Exception as e:
             logger.error("periodic_flock_loop error: %s", e)
@@ -814,6 +873,7 @@ async def daily_feed_loop(db_pool: asyncpg.Pool):
                         "type": "alert_state",
                         "alerts": alert_engine.get_alert_state(),
                     })
+                    asyncio.create_task(_dispatch_ntfy_for_alerts())
 
         except Exception as e:
             logger.error("daily_feed_loop error: %s", e)
