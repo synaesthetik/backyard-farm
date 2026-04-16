@@ -137,12 +137,12 @@ New components introduced in Phase 5 (follow established Svelte 5 / CSS variable
 
 ## Route Map
 
-| Route | Page Title | New in Phase 5 |
-|-------|------------|---------------|
-| `/settings/calibration` | Calibration Management | Yes |
-| `/settings/notifications` | Push Notifications | Yes |
-| `/settings/storage` | Storage & Retention | Yes |
-| `/zones/[id]` | (existing) — extend with pH calibration inline action | No (extended) |
+| Route | Page Title | New in Phase 5 | Focal Point |
+|-------|------------|----------------|-------------|
+| `/settings/notifications` | Push Notifications | Yes | Enabled toggle and "Send Test" button group — these two controls are the primary actions; all other fields (URL, topic) are supporting inputs |
+| `/settings/calibration` | Calibration Management | Yes | CalibrationRow list with overdue badges — the amber "OVERDUE" badges and filled "Record Calibration" buttons draw the eye to sensors requiring action |
+| `/settings/storage` | Storage & Retention | Yes | Per-table size display (28px tabular-nums) — the storage figures are the primary data; "Purge Now" is secondary and placed below the data table |
+| `/zones/[id]` | (existing) — extend with pH calibration inline action | No (extended) | Unchanged from Phase 3 focal point; PhCalibrationInlineAction is subordinate to the existing SensorValue display |
 
 Settings pages use the same layout pattern as `/settings/ai`:
 ```
@@ -182,7 +182,7 @@ Settings pages use the same layout pattern as `/settings/ai`:
   - Border: `1px solid var(--color-offline)`
   - Text: "This will permanently delete all raw sensor readings older than 90 days. This cannot be undone."
   - Font: 14px/400 Inter, `color: var(--color-text-primary)`
-  - Two buttons: "Cancel" (ghost style) and "Confirm Purge" (filled destructive: `background: var(--color-offline)`, `color: #f1f5f9`)
+  - Two buttons: "Keep My Data" (ghost style) and "Confirm Purge" (filled destructive: `background: var(--color-offline)`, `color: #f1f5f9`)
 - On success: Toast "Purge complete — storage reclaimed"
 - On failure: Toast "Purge failed — check logs"
 
@@ -201,6 +201,7 @@ Settings pages use the same layout pattern as `/settings/ai`:
 | Primary CTA — ntfy | "Save Settings" |
 | Secondary CTA — ntfy test | "Send Test" |
 | Primary CTA — purge | "Confirm Purge" (destructive) |
+| Dismiss CTA — purge confirmation | "Keep My Data" (ghost style, cancels the inline confirmation panel) |
 | Empty state — calibration list | "No pH sensors configured. Add a zone with a pH sensor to begin tracking calibration." |
 | Empty state — ntfy (disabled) | "Push notifications are off. Enter your ntfy server URL and topic to enable." |
 | Empty state — storage stats | "Storage data unavailable — reconnect to refresh." |
