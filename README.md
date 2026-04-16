@@ -1,6 +1,6 @@
 # Backyard Farm Platform
 
-A self-hosted, local-only platform for managing a medium-scale backyard farm — multiple garden zones and a chicken flock. Distributed edge nodes collect sensor data, a central hub runs AI inference and serves the dashboard, and the farmer monitors everything from a single PWA.
+A self-hosted, local-only platform for managing a medium-scale backyard farm — multiple garden zones and a chicken flock. Distributed edge nodes collect sensor data, a central hub runs ML-based inference and serves the dashboard, and the farmer monitors everything from a single PWA.
 
 **No cloud. No subscriptions. Your data stays on your network.**
 
@@ -21,7 +21,7 @@ graph TB
     subgraph HUB["Hub (Pi 5 / Mini-PC)"]
         direction TB
         MQTT["Mosquitto<br/>MQTT Broker"]
-        BRIDGE["Bridge<br/>Sensor Pipeline · Rules<br/>Alerts · ONNX Inference"]
+        BRIDGE["Bridge<br/>Sensor Pipeline · Rules<br/>Alerts · ML Inference"]
         DB[("TimescaleDB<br/>Sensor Readings<br/>Quality Flags")]
         API["FastAPI<br/>REST + WebSocket"]
         DASH["SvelteKit<br/>Dashboard PWA"]
@@ -74,7 +74,7 @@ flowchart LR
     STUCK --> TS["TimescaleDB<br/>INSERT"]
     TS --> EVAL["Rule Engine<br/>Alert Engine<br/>Health Score"]
     EVAL --> ONNX{"ONNX<br/>Inference?"}
-    ONNX -->|AI mode| ML["ONNX Runtime<br/>Predict"]
+    ONNX -->|ML mode| ML["ONNX Runtime<br/>Predict"]
     ONNX -->|Rules mode| RULES["Threshold<br/>Logic"]
     ML --> WS["WebSocket<br/>Broadcast"]
     RULES --> WS
@@ -93,7 +93,7 @@ flowchart LR
     style WS fill:#0f1117,stroke:#4ade80,color:#e2e8f0
 ```
 
-**Quality flags** are applied at ingestion — every reading is tagged `GOOD`, `SUSPECT`, or `BAD` based on range checks. Only `GOOD`-flagged data is used for AI model training (AI-06).
+**Quality flags** are applied at ingestion — every reading is tagged `GOOD`, `SUSPECT`, or `BAD` based on range checks. Only `GOOD`-flagged data is used for ML model training.
 
 ---
 
@@ -121,7 +121,7 @@ sequenceDiagram
     B->>D: Status: irrigating → complete
 ```
 
-AI models (Phase 4) produce recommendations through the same queue — the farmer's experience is identical whether recommendations come from threshold rules or ONNX models.
+ML models (Phase 4) produce recommendations through the same queue — the farmer's experience is identical whether recommendations come from threshold rules or trained ONNX models.
 
 ---
 
@@ -129,12 +129,12 @@ AI models (Phase 4) produce recommendations through the same queue — the farme
 
 | Tab | Route | What it shows |
 |-----|-------|---------------|
-| **Home** | `/` | Unified overview — zone health cards + flock summary + AI status |
+| **Home** | `/` | Unified overview — zone health cards + flock summary + ML model status |
 | **Zones** | `/zones` | All zones with sensor values, health badges, system health panel |
 | **Zone Detail** | `/zones/[id]` | Single zone: live readings, irrigation controls, 7/30-day charts |
 | **Coop** | `/coop` | Door status + controls, egg count, production chart, feed sparkline |
-| **Recommendations** | `/recommendations` | Pending actions with approve/reject + AI/Rules source badge |
-| **AI Settings** | `/settings/ai` | Per-domain AI/Rules toggle, model maturity progress |
+| **Recommendations** | `/recommendations` | Pending actions with approve/reject + ML/Rules source badge |
+| **ML Settings** | `/settings/ai` | Per-domain ML/Rules toggle, model maturity progress |
 
 ---
 
@@ -145,9 +145,9 @@ AI models (Phase 4) produce recommendations through the same queue — the farme
 | **Edge** | Python 3.12, paho-mqtt | Sensor polling, SQLite buffer, local emergency rules |
 | **Broker** | Mosquitto 2.1 | MQTT messaging with per-node ACL credentials |
 | **Database** | TimescaleDB 2.26 (PG 17) | Hypertable for sensor readings, quality flags, time-bucketed queries |
-| **Bridge** | Python 3.12, aiomqtt, asyncpg | Sensor pipeline, calibration, quality flags, rules, alerts, ONNX inference |
+| **Bridge** | Python 3.12, aiomqtt, asyncpg | Sensor pipeline, calibration, quality flags, rules, alerts, ML inference |
 | **API** | FastAPI 0.135, Uvicorn | REST endpoints, WebSocket real-time updates |
-| **Inference** | ONNX Runtime 1.23, scikit-learn | Zone health, irrigation, flock anomaly models with hot-reload |
+| **ML Inference** | ONNX Runtime 1.23, scikit-learn | Gradient boosting classifiers for zone health, irrigation, flock anomaly — not LLMs |
 | **Scheduling** | APScheduler 3.11 | Periodic inference (15m/1h/30m) + weekly model retraining |
 | **Dashboard** | SvelteKit 2.21, Svelte 5 | PWA with real-time WebSocket, uPlot charts, Lucide icons |
 | **Proxy** | Caddy | HTTPS termination, reverse proxy (required for PWA on iOS) |
@@ -178,7 +178,7 @@ backyard-farm/
 │   │   ├── production_model.py  # Expected egg production (breed × age × daylight)
 │   │   ├── egg_estimator.py     # Nesting box weight → egg count
 │   │   ├── feed_consumption.py  # Daily feed delta with refill detection
-│   │   ├── inference/           # Phase 4: ONNX AI layer
+│   │   ├── inference/           # Phase 4: ONNX ML layer
 │   │   │   ├── inference_service.py      # ONNX Runtime wrapper + hot-reload
 │   │   │   ├── feature_aggregator.py     # Sensor window assembly (GOOD-flag SQL)
 │   │   │   ├── inference_scheduler.py    # APScheduler: inference + weekly retraining
@@ -238,9 +238,9 @@ Each node has dedicated MQTT credentials with ACL scoped to `farm/{node_id}/#`. 
 
 ---
 
-## AI Engine (Phase 4)
+## ML Engine (Phase 4)
 
-Three ONNX models replace rule-based logic behind the same recommend-and-confirm UX:
+Three ONNX models (scikit-learn gradient boosting classifiers) replace rule-based threshold logic behind the same recommend-and-confirm UX. This is classical machine learning on structured tabular sensor data — not LLMs or generative AI.
 
 ```mermaid
 graph LR
@@ -256,7 +256,7 @@ graph LR
         SENSOR["Sensor<br/>Delta"] --> AGG["Feature<br/>Aggregator"]
         AGG --> ONNX["ONNX Runtime<br/>InferenceSession"]
         ONNX --> CONF{"Confidence<br/>>= 0.65?"}
-        CONF -->|yes| REC["AI Recommendation"]
+        CONF -->|yes| REC["ML Recommendation"]
         CONF -->|no| FALLBACK["Rule Engine<br/>Fallback"]
     end
 
@@ -284,7 +284,7 @@ graph LR
 | Irrigation | Every 1 hour | 24 hours |
 | Flock Anomaly | Every 30 minutes | 7 days |
 
-The farmer can toggle each domain between AI and Rules independently from `/settings/ai`. During cold start (< 4 weeks of data), rule-based logic runs automatically.
+The farmer can toggle each domain between ML and Rules independently from `/settings/ai`. During cold start (< 4 weeks of data), rule-based threshold logic runs automatically.
 
 ---
 
@@ -305,11 +305,11 @@ The farmer can toggle each domain between AI and Rules independently from `/sett
 
 ## Design Principles
 
-- **Local-only** — No cloud APIs, no external inference, no recurring costs. All data and AI stays on-premises.
+- **Local-only** — No cloud APIs, no external inference, no recurring costs. All data and ML processing stays on-premises.
 - **Recommend-and-confirm** — The system proposes, the farmer decides. No fully autonomous actions in v1.
 - **Sensor-based** — Plant health from soil sensors, not cameras. Flock health from weight sensors and production models.
 - **Hardware-agnostic** — Pluggable sensor adapters. Calibration at the hub, not the edge.
-- **Graceful degradation** — Edge nodes buffer locally during hub outages. Stale data is shown with visual indicators, never hidden. AI falls back to rules when confidence is low.
+- **Graceful degradation** — Edge nodes buffer locally during hub outages. Stale data is shown with visual indicators, never hidden. ML models fall back to threshold rules when confidence is low.
 
 ---
 
@@ -342,7 +342,7 @@ cd hub/dashboard && npm run build
 | 1. Hardware Foundation + Sensor Pipeline | Complete | Sensor data flowing with quality flags, stuck detection, node health |
 | 2. Actuator Control + Dashboard V1 | Complete | Irrigation, coop door, recommendations, alerts, PWA |
 | 3. Flock Management + Unified Dashboard | Complete | Egg tracking, production model, feed consumption, overview screen |
-| 4. ONNX AI Layer | Complete | ML-backed recommendations, model maturity, AI/Rules toggle |
+| 4. ONNX ML Layer | Complete | ML-backed recommendations, model maturity, ML/Rules toggle |
 | 5. Operational Hardening | Planned | pH calibration, push notifications (ntfy), data retention |
 | 6. Hardware Shopping List | Planned | Complete BOM, wiring diagrams, smoke test procedures |
 | 7. Tutorial + User Docs | Planned | Interactive tutorial, reference docs, troubleshooting guide |
