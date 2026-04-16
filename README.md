@@ -1,4 +1,4 @@
-# Backyard Farm Platform
+# A special backyard farm platform catered specifically to me
 
 A self-hosted, local-only platform for managing a medium-scale backyard farm — multiple garden zones and a chicken flock. Distributed edge nodes collect sensor data, a central hub runs ML-based inference and serves the dashboard, and the farmer monitors everything from a single PWA.
 
