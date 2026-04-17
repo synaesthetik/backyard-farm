@@ -63,9 +63,67 @@ sudo security add-trusted-cert -d -r trustRoot \
 rm -f "$CERT_FILE"
 
 echo ""
+echo "==> Starting full stack..."
+docker compose up --build -d
+
+echo "==> Waiting for TimescaleDB to be healthy..."
+for i in $(seq 1 30); do
+  if docker compose exec timescaledb pg_isready -U farm -d farmdb -q 2>/dev/null; then
+    echo "    TimescaleDB ready."
+    break
+  fi
+  if [ "$i" -eq 30 ]; then
+    echo "    ERROR: TimescaleDB did not become healthy after 30s"
+    exit 1
+  fi
+  sleep 1
+done
+
+echo ""
+echo "==> Running database migrations..."
+for migration in "$HUB_DIR"/migrations/*.sql; do
+  if [ -f "$migration" ]; then
+    echo "    Applying $(basename "$migration")..."
+    cat "$migration" | docker compose exec -T timescaledb psql -U farm -d farmdb -q 2>&1 | grep -v "^$" || true
+  fi
+done
+
+echo ""
+echo "==> Seeding zone configuration..."
+docker compose exec -T timescaledb psql -U farm -d farmdb -q <<'EOSQL'
+INSERT INTO zone_config (zone_id, name, plant_type, soil_type, target_vwc_min, target_vwc_max, target_ph_min, target_ph_max)
+VALUES
+  ('zone-01', 'Raised Beds (Tomatoes)', 'tomato', 'loam', 25.0, 45.0, 6.0, 6.8),
+  ('zone-02', 'Herb Garden', 'herbs', 'sandy_loam', 20.0, 40.0, 6.0, 7.0),
+  ('zone-03', 'Berry Patch', 'blueberry', 'acidic_peat', 30.0, 50.0, 4.5, 5.5),
+  ('zone-04', 'Root Vegetables', 'carrot', 'loam', 25.0, 45.0, 6.0, 6.8)
+ON CONFLICT (zone_id) DO NOTHING;
+
+INSERT INTO calibration_offsets (zone_id, sensor_type, offset_value, last_calibration_date)
+VALUES
+  ('zone-01', 'ph', 0.1, NOW() - INTERVAL '20 days'),
+  ('zone-02', 'ph', -0.05, NOW() - INTERVAL '3 days'),
+  ('zone-03', 'ph', 0.0, NULL),
+  ('zone-04', 'ph', 0.2, NOW() - INTERVAL '13 days')
+ON CONFLICT (zone_id, sensor_type) DO UPDATE SET
+  last_calibration_date = EXCLUDED.last_calibration_date;
+EOSQL
+
+echo ""
+echo "==> Generating synthetic sensor data (6 weeks, 4 zones)..."
+DB_HOST=localhost python "$HUB_DIR/../scripts/generate_synthetic_data.py" \
+  --weeks 6 --zones "zone-01,zone-02,zone-03,zone-04" --flock-size 12
+
+echo ""
+echo "==> Restarting bridge (picks up new data and migrations)..."
+docker compose restart bridge
+
+echo ""
 echo "==> Done."
 echo "    MQTT credentials saved to config/hub.env."
 echo "    Caddy root CA trusted in macOS keychain — no cert warnings at https://localhost:8443"
+echo "    Zones seeded: zone-01 through zone-04 with 6 weeks of sensor data."
+echo "    Calibration data seeded with mixed overdue/current states."
 echo "    Save the zone/coop passwords above for edge node .env files."
 echo ""
-echo "    Run 'docker compose up' to start the full stack."
+echo "    Dashboard: https://localhost:8443"

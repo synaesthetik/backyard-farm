@@ -6,6 +6,7 @@ aiohttp==3.11.16
 astral==3.2
 pytest==8.3.5
 pytest-asyncio==0.25.3
+onnx==1.17.0
 onnxruntime==1.23.2
 numpy==2.2.6
 APScheduler==3.11.2

@@ -72,6 +72,27 @@ async def startup():
         db_pool=_db_pool,
     )
 
+    # Hydrate WebSocket manager with latest readings from DB so seeded/historical
+    # data shows up immediately instead of waiting for live MQTT messages.
+    rows = await _db_pool.fetch("""
+        SELECT DISTINCT ON (zone_id, sensor_type)
+            zone_id, sensor_type, value, quality, stuck, received_at
+        FROM sensor_readings
+        ORDER BY zone_id, sensor_type, time DESC
+    """)
+    for row in rows:
+        ws_manager.update_state({
+            "type": "sensor_update",
+            "zone_id": row["zone_id"],
+            "sensor_type": row["sensor_type"],
+            "value": row["value"],
+            "quality": row["quality"],
+            "stuck": row["stuck"],
+            "received_at": row["received_at"].isoformat(),
+        })
+    if rows:
+        logger.info("Hydrated %d sensor readings into WebSocket manager", len(rows))
+
 
 async def _notify_ws(delta: dict):
     """Broadcast a delta directly to WebSocket clients (used by recommendation_router)."""
