@@ -239,7 +239,7 @@ Plans:
 - [x] 05-01-PLAN.md — pH calibration backend: DB migration, CalibrationStore extension, AlertEngine overdue alert, periodic check loop, calibration API router
 - [x] 05-02-PLAN.md — ntfy push notification backend: NtfySettings sidecar, ntfy dispatch, bridge integration, ntfy/storage API routers, data retention DDL
 - [x] 05-03-PLAN.md — All frontend: calibration settings page, ntfy settings page, storage settings page, zone detail inline action, settings navigation
-- [ ] 05-04-PLAN.md — Human verification checkpoint: full Phase 5 end-to-end feature verification
+- [x] 05-04-PLAN.md — Human verification checkpoint: full Phase 5 end-to-end feature verification
 
 **UI hint**: yes
 
