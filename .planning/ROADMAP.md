@@ -259,7 +259,14 @@ Plans:
   3. Each diagram includes a "smoke test" procedure — a simple verification step the farmer can perform after wiring each subsystem to confirm it works before moving on
   4. The documentation cross-references the codebase: each hardware connection maps to the specific config file, GPIO constant, or I2C address used in the software
 
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+- [ ] 06-01-PLAN.md — Master BOM (docs/hardware/bom.md) with all components, prices, purchase links, total cost summary (~$742), and budget alternatives
+- [ ] 06-02-PLAN.md — docs/hardware/ directory scaffold, README navigation index, Fritzing workflow, placeholder diagrams
+- [ ] 06-03-PLAN.md — Hub assembly guide (docs/hardware/hub.md) and power distribution guide (docs/hardware/power.md)
+- [ ] 06-04-PLAN.md — Garden zone node wiring (docs/hardware/garden-node.md) and irrigation relay/solenoid guide (docs/hardware/irrigation.md)
+- [ ] 06-05-PLAN.md — Coop edge node wiring (docs/hardware/coop-node.md) — actuator, limit switches, load cells, sensors
 
 ---
 
@@ -292,7 +299,7 @@ Plans:
 | 3. Flock Management and Unified Dashboard | 5/6 | Complete    | 2026-04-15 |
 | 4. ONNX AI Layer and Recommendation Engine | 4/5 | In Progress|  |
 | 5. Operational Hardening | 0/4 | Planned | - |
-| 6. Hardware Shopping List and Wiring Diagrams | 0/0 | Not started | - |
+| 6. Hardware Shopping List and Wiring Diagrams | 0/5 | Planned | - |
 | 7. Interactive Tutorial and User Documentation | 0/0 | Not started | - |
 
 ---
