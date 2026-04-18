@@ -264,9 +264,9 @@ Plans:
 Plans:
 - [x] 06-01-PLAN.md — Master BOM (docs/hardware/bom.md) with all components, prices, purchase links, total cost summary (~$742), and budget alternatives
 - [x] 06-02-PLAN.md — docs/hardware/ directory scaffold, README navigation index, Fritzing workflow, placeholder diagrams
-- [ ] 06-03-PLAN.md — Hub assembly guide (docs/hardware/hub.md) and power distribution guide (docs/hardware/power.md)
-- [ ] 06-04-PLAN.md — Garden zone node wiring (docs/hardware/garden-node.md) and irrigation relay/solenoid guide (docs/hardware/irrigation.md)
-- [ ] 06-05-PLAN.md — Coop edge node wiring (docs/hardware/coop-node.md) — actuator, limit switches, load cells, sensors
+- [x] 06-03-PLAN.md — Hub assembly guide (docs/hardware/hub.md) and power distribution guide (docs/hardware/power.md)
+- [x] 06-04-PLAN.md — Garden zone node wiring (docs/hardware/garden-node.md) and irrigation relay/solenoid guide (docs/hardware/irrigation.md)
+- [x] 06-05-PLAN.md — Coop edge node wiring (docs/hardware/coop-node.md) — actuator, limit switches, load cells, sensors
 
 ---
 
