@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 5 UI-SPEC approved
-last_updated: "2026-04-17T19:35:29.970Z"
-last_activity: 2026-04-17
+last_updated: "2026-04-18T04:20:50.907Z"
+last_activity: 2026-04-18 -- Phase 06 execution started
 progress:
   total_phases: 7
   completed_phases: 4
-  total_plans: 30
+  total_plans: 35
   completed_plans: 29
-  percent: 97
+  percent: 83
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-01)
 
 **Core value:** A single dashboard where you can see every zone's sensor readings, irrigation status, and flock health at a glance — and act on AI recommendations without leaving it.
-**Current focus:** Phase 05 — operational-hardening
+**Current focus:** Phase 06 — hardware-shopping-list-and-wiring-diagrams
 
 ## Current Position
 
-Phase: 6
-Plan: Not started
-Status: Executing Phase 05
-Last activity: 2026-04-17
+Phase: 06 (hardware-shopping-list-and-wiring-diagrams) — EXECUTING
+Plan: 1 of 5
+Status: Executing Phase 06
+Last activity: 2026-04-18 -- Phase 06 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
