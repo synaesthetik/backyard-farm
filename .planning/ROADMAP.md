@@ -310,7 +310,10 @@ Plans:
   3. The `node_offline` alert appears in the AlertBar and is cleared automatically on reconnection
   4. `ws_manager.py` egg count snapshot uses `delta.get("estimated_count")` (not `delta.get("today")`)
 
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 08-01-PLAN.md — WebSocket model_maturity support, egg count field fix, heartbeat watchdog coroutine (AI-07, INFRA-05, NOTF-01)
 
 **Gap Closure:** Closes gaps from v1.0 milestone audit
 
