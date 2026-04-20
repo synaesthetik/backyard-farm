@@ -313,7 +313,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 08-01-PLAN.md — WebSocket model_maturity support, egg count field fix, heartbeat watchdog coroutine (AI-07, INFRA-05, NOTF-01)
+- [x] 08-01-PLAN.md — WebSocket model_maturity support, egg count field fix, heartbeat watchdog coroutine (AI-07, INFRA-05, NOTF-01)
 
 **Gap Closure:** Closes gaps from v1.0 milestone audit
 
