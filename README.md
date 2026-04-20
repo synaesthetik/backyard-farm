@@ -336,6 +336,22 @@ cd hub/dashboard && npm run build
 
 ---
 
+## Documentation
+
+```bash
+make docs          # Build reference docs to site/
+make docs-serve    # Serve docs locally at http://127.0.0.1:8000
+make docs-clean    # Remove built site/ directory
+```
+
+Requires Python 3 and pip. Installs `mkdocs` and `mkdocs-material` from `requirements-docs.txt` automatically.
+
+Built docs are written to `site/` (not committed to git). Open `site/index.html` or run `make docs-serve` for a live preview with hot reload.
+
+Full documentation source is in the `docs/` directory.
+
+---
+
 ## Roadmap
 
 | Phase | Status | What it delivers |
