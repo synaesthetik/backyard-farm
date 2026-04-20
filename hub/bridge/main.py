@@ -335,6 +335,20 @@ async def _dispatch_ntfy_for_alerts() -> None:
         asyncio.create_task(send_ntfy_notification(ntfy_settings, alert))
 
 
+async def _push_model_maturity():
+    """Broadcast current MaturityTracker state to all WebSocket clients (AI-07).
+
+    Called on startup and after every approve/reject event so the dashboard
+    always shows up-to-date maturity counts.
+    """
+    if _maturity_tracker is None:
+        return
+    await notify_api({
+        "type": "model_maturity",
+        "domains": _maturity_tracker.get_all_maturity_states(),
+    })
+
+
 async def _handle_get_ntfy_settings(request: web.Request) -> web.Response:
     """GET /internal/ntfy-settings — return current ntfy settings."""
     return web.json_response(ntfy_settings.get_all())
@@ -388,6 +402,7 @@ async def _handle_approve(request: web.Request) -> web.Response:
     if _maturity_tracker is not None:
         _maturity_tracker.record_approval("irrigation")
         await _maturity_tracker.persist_to_db()
+    await _push_model_maturity()
 
     # Read zone-configured target VWC from DB (not hardcoded)
     target_vwc = await _bridge_read_vwc_high_threshold(zone_id, db_pool)
@@ -438,6 +453,7 @@ async def _handle_reject(request: web.Request) -> web.Response:
     if _maturity_tracker is not None:
         _maturity_tracker.record_rejection("irrigation")
         await _maturity_tracker.persist_to_db()
+    await _push_model_maturity()
 
     # Broadcast updated recommendation queue to dashboard
     await notify_api({
@@ -670,6 +686,63 @@ async def periodic_calibration_check(db_pool: asyncpg.Pool):
                 asyncio.create_task(_dispatch_ntfy_for_alerts())
         except Exception as e:
             logger.error("periodic_calibration_check error: %s", e)
+
+
+async def periodic_heartbeat_check(db_pool: asyncpg.Pool):
+    """Check node heartbeats every 60 seconds; fire/clear node_offline alerts (INFRA-05).
+
+    Fires node_offline alert when a node's last heartbeat exceeds 5 minutes ago.
+    Clears the alert when the node's heartbeat becomes recent again.
+    ntfy dispatch fires whenever alert state changes (NOTF-01).
+    """
+    from datetime import datetime, timezone, timedelta
+    while True:
+        await asyncio.sleep(60)
+        try:
+            rows = await db_pool.fetch(
+                """
+                SELECT node_id, MAX(heartbeat_at) AS last_seen
+                FROM node_heartbeats
+                GROUP BY node_id
+                """
+            )
+            alert_changed = False
+            seen_node_ids = set()
+            for row in rows:
+                node_id = row["node_id"]
+                last_seen = row["last_seen"]
+                seen_node_ids.add(node_id)
+                alert_key = f"node_offline:{node_id}"
+
+                cutoff = datetime.now(timezone.utc) - timedelta(minutes=5)
+                is_offline = last_seen < cutoff
+                was_active = alert_key in alert_engine._active_alerts
+
+                if is_offline and not was_active:
+                    alert_engine.set_alert(alert_key)
+                    alert_changed = True
+                    logger.warning("Node offline alert fired: %s (last seen %s)", node_id, last_seen)
+                elif not is_offline and was_active:
+                    alert_engine.clear_alert(alert_key)
+                    alert_changed = True
+                    logger.info("Node offline alert cleared: %s", node_id)
+
+            # Clear alerts for nodes no longer in heartbeat table (edge case: node removed)
+            for alert_key in list(alert_engine._active_alerts.keys()):
+                if alert_key.startswith("node_offline:"):
+                    node_id = alert_key.split(":", 1)[1]
+                    if node_id not in seen_node_ids:
+                        alert_engine.clear_alert(alert_key)
+                        alert_changed = True
+
+            if alert_changed:
+                await notify_api({
+                    "type": "alert_state",
+                    "alerts": alert_engine.get_alert_state(),
+                })
+                asyncio.create_task(_dispatch_ntfy_for_alerts())
+        except Exception as e:
+            logger.error("periodic_heartbeat_check error: %s", e)
 
 
 async def periodic_flock_loop(db_pool: asyncpg.Pool):
@@ -993,6 +1066,7 @@ async def main():
     os.makedirs(models_dir, exist_ok=True)
     start_model_watcher(models_dir, inference_services)
     logger.info("Phase 4 inference components initialized")
+    await _push_model_maturity()
 
     # APScheduler runs cooperatively in the event loop (04-RESEARCH.md Pattern 4).
     # No new coroutine needed in gather() — scheduler attaches to existing loop.
@@ -1003,6 +1077,7 @@ async def main():
         periodic_flock_loop(db_pool),
         daily_feed_loop(db_pool),
         periodic_calibration_check(db_pool),
+        periodic_heartbeat_check(db_pool),
     )
 
 
