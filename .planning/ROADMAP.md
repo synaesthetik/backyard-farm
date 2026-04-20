@@ -82,6 +82,7 @@ Phase 3: Flock Management and Unified Dashboard
 - [ ] **Phase 5: Operational Hardening** - pH calibration workflows, push notifications, data retention policies, and sensor calibration management
 - [ ] **Phase 6: Hardware Shopping List and Wiring Diagrams** - Complete BOM, wiring diagrams for every connection, and smoke test procedures
 - [ ] **Phase 7: Interactive Tutorial and User Documentation** - In-app tutorial, full reference docs, and troubleshooting guide
+- [ ] **Phase 8: Milestone Gap Closure** - Fix 3 requirement gaps (AI-07 model maturity display, INFRA-05 heartbeat watchdog, NOTF-01 node_offline alert) and 1 data bug (egg count snapshot)
 
 ---
 
@@ -292,6 +293,26 @@ Plans:
 - [x] 07-03-PLAN.md — 20-failure-mode troubleshooting guide (symptom-first) and auto-build Makefile target
 
 **UI hint**: yes
+
+---
+
+### Phase 8: Milestone Gap Closure
+
+**Goal**: Close the 3 requirement gaps and 1 data bug identified by the v1.0 milestone audit. Model maturity data reaches the dashboard, node-offline alerts fire when heartbeats are missed, and the egg count WebSocket snapshot uses the correct field.
+
+**Depends on**: Phase 7 (all features complete)
+
+**Requirements**: AI-07, INFRA-05, NOTF-01
+
+**Success Criteria** (what must be TRUE):
+  1. `dashboardStore.modelMaturity` receives real data from the bridge — AIStatusCard shows actual maturity progress, not the cold-start placeholder
+  2. A `periodic_heartbeat_check` coroutine in the bridge fires `node_offline` alerts when a node's last heartbeat exceeds 5 minutes, and clears the alert when the node reconnects
+  3. The `node_offline` alert appears in the AlertBar and is cleared automatically on reconnection
+  4. `ws_manager.py` egg count snapshot uses `delta.get("estimated_count")` (not `delta.get("today")`)
+
+**Plans**: TBD
+
+**Gap Closure:** Closes gaps from v1.0 milestone audit
 
 ---
 
