@@ -1,8 +1,24 @@
-# A special backyard farm platform catered specifically to me
+# Backyard Farm Platform
 
 A self-hosted, local-only platform for managing a medium-scale backyard farm — multiple garden zones and a chicken flock. Distributed edge nodes collect sensor data, a central hub runs ML-based inference and serves the dashboard, and the farmer monitors everything from a single PWA.
 
 **No cloud. No subscriptions. Your data stays on your network.**
+
+### What you get
+
+- **Real-time dashboard** — soil moisture, pH, temperature, flock health, and coop status on one screen
+- **ML-powered recommendations** — ONNX models learn your farm and suggest actions; you approve before anything happens
+- **Automated coop** — sunrise/sunset door, stuck detection, egg counting via nesting box weight sensor
+- **Smart irrigation** — sensor-feedback loops that stop watering when moisture hits the target
+- **Push notifications** — self-hosted ntfy integration sends alerts to your phone
+- **pH calibration tracking** — overdue reminders, one-tap recording, per-sensor offset management
+- **Complete hardware guide** — shopping list with exact parts, wiring diagrams, and smoke tests for every subsystem
+- **Interactive tutorial** — step-by-step onboarding walks you through first boot to daily operation
+- **Full reference docs** — every screen, config option, alert type, and failure mode documented
+
+### What it costs
+
+~$742 in hardware (4 garden zones + coop + hub). See the [full BOM](docs/hardware/bom.md) for exact parts and budget alternatives.
 
 ---
 
@@ -15,10 +31,11 @@ graph TB
         Z1["Zone 1<br/>Moisture · pH · Temp"]
         Z2["Zone 2<br/>Moisture · pH · Temp"]
         Z3["Zone 3<br/>Moisture · pH · Temp"]
-        COOP["Coop Node<br/>Feed · Water · Nesting Box<br/>Door Actuator"]
+        Z4["Zone 4<br/>Moisture · pH · Temp"]
+        COOP["Coop Node<br/>Feed · Water · Nesting Box<br/>Door Actuator · Temp"]
     end
 
-    subgraph HUB["Hub (Pi 5 / Mini-PC)"]
+    subgraph HUB["Hub (Raspberry Pi 5)"]
         direction TB
         MQTT["Mosquitto<br/>MQTT Broker"]
         BRIDGE["Bridge<br/>Sensor Pipeline · Rules<br/>Alerts · ML Inference"]
@@ -31,6 +48,7 @@ graph TB
     Z1 -->|MQTT QoS 1| MQTT
     Z2 -->|MQTT QoS 1| MQTT
     Z3 -->|MQTT QoS 1| MQTT
+    Z4 -->|MQTT QoS 1| MQTT
     COOP -->|MQTT QoS 1| MQTT
 
     MQTT --> BRIDGE
@@ -49,6 +67,7 @@ graph TB
     style Z1 fill:#0f1117,stroke:#4ade80,color:#e2e8f0
     style Z2 fill:#0f1117,stroke:#4ade80,color:#e2e8f0
     style Z3 fill:#0f1117,stroke:#4ade80,color:#e2e8f0
+    style Z4 fill:#0f1117,stroke:#4ade80,color:#e2e8f0
     style COOP fill:#0f1117,stroke:#f59e0b,color:#e2e8f0
     style MQTT fill:#0f1117,stroke:#a78bfa,color:#e2e8f0
     style BRIDGE fill:#0f1117,stroke:#60a5fa,color:#e2e8f0
@@ -125,16 +144,19 @@ ML models (Phase 4) produce recommendations through the same queue — the farme
 
 ---
 
-## Dashboard Tabs
+## Dashboard
 
-| Tab | Route | What it shows |
-|-----|-------|---------------|
-| **Home** | `/` | Unified overview — zone health cards + flock summary + ML model status |
-| **Zones** | `/zones` | All zones with sensor values, health badges, system health panel |
-| **Zone Detail** | `/zones/[id]` | Single zone: live readings, irrigation controls, 7/30-day charts |
-| **Coop** | `/coop` | Door status + controls, egg count, production chart, feed sparkline |
-| **Recommendations** | `/recommendations` | Pending actions with approve/reject + ML/Rules source badge |
-| **ML Settings** | `/settings/ai` | Per-domain ML/Rules toggle, model maturity progress |
+| Screen | Route | What it shows |
+|--------|-------|---------------|
+| **Home** | `/` | Unified overview — zone health cards, flock summary, ML model status, alert bar |
+| **Zones** | `/zones` | All zones with live sensor values, health badges, system health panel |
+| **Zone Detail** | `/zones/[id]` | Single zone: live readings, irrigation controls, 7/30-day charts, inline pH calibration |
+| **Coop** | `/coop` | Door status + controls, egg count, production chart, feed/water levels |
+| **Settings: AI** | `/settings/ai` | Per-domain ML/Rules toggle, model maturity progress |
+| **Settings: Calibration** | `/settings/calibration` | pH sensor list with overdue badges, record calibration, edit offsets |
+| **Settings: Notifications** | `/settings/notifications` | ntfy server URL, topic, enable/disable, Send Test |
+| **Settings: Storage** | `/settings/storage` | Per-table sizes from TimescaleDB, manual purge with confirmation |
+| **Tutorial** | `/tutorial` | 8-step interactive onboarding wizard (auto-launches on first visit) |
 
 ---
 
@@ -142,104 +164,21 @@ ML models (Phase 4) produce recommendations through the same queue — the farme
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
-| **Edge** | Python 3.12, paho-mqtt | Sensor polling, SQLite buffer, local emergency rules |
+| **Edge Nodes** | Raspberry Pi Zero 2W, Python 3.12, paho-mqtt | Sensor polling, SQLite buffer, local emergency rules |
+| **Coop Node** | Raspberry Pi 5, L298N, HX711, DS18B20 | Door actuator, load cells, limit switches, temperature |
+| **Hub** | Raspberry Pi 5 (8GB), Docker Compose | Runs all hub services |
 | **Broker** | Mosquitto 2.1 | MQTT messaging with per-node ACL credentials |
-| **Database** | TimescaleDB 2.26 (PG 17) | Hypertable for sensor readings, quality flags, time-bucketed queries |
-| **Bridge** | Python 3.12, aiomqtt, asyncpg | Sensor pipeline, calibration, quality flags, rules, alerts, ML inference |
+| **Database** | TimescaleDB 2.26 (PG 17) | Hypertable for sensor readings, continuous aggregates, retention policies |
+| **Bridge** | Python 3.12, aiomqtt, asyncpg | Sensor pipeline, calibration, quality flags, rules, alerts, ML inference, ntfy dispatch |
 | **API** | FastAPI 0.135, Uvicorn | REST endpoints, WebSocket real-time updates |
-| **ML Inference** | ONNX Runtime 1.23, scikit-learn | Gradient boosting classifiers for zone health, irrigation, flock anomaly — not LLMs |
-| **Scheduling** | APScheduler 3.11 | Periodic inference (15m/1h/30m) + weekly model retraining |
+| **ML Inference** | ONNX Runtime 1.23, scikit-learn | Gradient boosting classifiers for zone health, irrigation, flock anomaly |
 | **Dashboard** | SvelteKit 2.21, Svelte 5 | PWA with real-time WebSocket, uPlot charts, Lucide icons |
 | **Proxy** | Caddy | HTTPS termination, reverse proxy (required for PWA on iOS) |
+| **Docs** | MkDocs + Material | Auto-built reference documentation from Markdown |
 
 ---
 
-## Project Structure
-
-```
-backyard-farm/
-├── edge/
-│   └── daemon/                  # Edge node sensor daemon
-│       ├── main.py              # Polling loop, MQTT publish, buffer flush
-│       ├── sensors.py           # DS18B20, ADS1115 pH, moisture drivers
-│       ├── buffer.py            # SQLite store-and-forward (INFRA-03)
-│       ├── rules.py             # Emergency shutoff, coop hard-close
-│       └── tests/
-├── hub/
-│   ├── docker-compose.yml       # All hub services
-│   ├── init-db.sql              # TimescaleDB schema
-│   ├── bridge/                  # MQTT bridge + sensor pipeline
-│   │   ├── main.py              # Async pipeline: validate → calibrate → flag → store → evaluate
-│   │   ├── quality.py           # GOOD / SUSPECT / BAD flagging
-│   │   ├── calibration.py       # Per-sensor offset application
-│   │   ├── rule_engine.py       # Threshold recommendations + dedup + back-off
-│   │   ├── alert_engine.py      # Threshold crossing with hysteresis
-│   │   ├── health_score.py      # Composite zone health (green/yellow/red)
-│   │   ├── production_model.py  # Expected egg production (breed × age × daylight)
-│   │   ├── egg_estimator.py     # Nesting box weight → egg count
-│   │   ├── feed_consumption.py  # Daily feed delta with refill detection
-│   │   ├── inference/           # Phase 4: ONNX ML layer
-│   │   │   ├── inference_service.py      # ONNX Runtime wrapper + hot-reload
-│   │   │   ├── feature_aggregator.py     # Sensor window assembly (GOOD-flag SQL)
-│   │   │   ├── inference_scheduler.py    # APScheduler: inference + weekly retraining
-│   │   │   ├── model_watcher.py          # Watchdog: .onnx file hot-reload
-│   │   │   ├── maturity_tracker.py       # Per-domain recommendation tracking
-│   │   │   ├── ai_settings.py            # AI/Rules toggle persistence
-│   │   │   ├── training/                 # scikit-learn → ONNX export pipelines
-│   │   │   │   ├── train_zone_health.py
-│   │   │   │   ├── train_irrigation.py
-│   │   │   │   └── train_flock_anomaly.py
-│   │   │   └── synthetic/                # Realistic test data generator
-│   │   └── tests/
-│   ├── api/                     # FastAPI REST + WebSocket server
-│   │   ├── main.py              # Server, DB pool, WebSocket /ws/dashboard
-│   │   ├── actuator_router.py   # Irrigation valve + coop door commands
-│   │   ├── recommendation_router.py  # Approve/reject → bridge proxy
-│   │   ├── history_router.py    # Time-bucketed sensor history
-│   │   ├── flock_router.py      # Flock config, egg history, refresh
-│   │   └── inference_settings_router.py  # AI/Rules toggle + maturity endpoints
-│   ├── dashboard/               # SvelteKit PWA
-│   │   └── src/
-│   │       ├── lib/
-│   │       │   ├── ws.svelte.ts          # Reactive WebSocket store
-│   │       │   ├── ZoneCard.svelte       # Zone sensor display + health badge
-│   │       │   ├── CoopPanel.svelte      # Door, eggs, feed, production chart
-│   │       │   ├── AIStatusCard.svelte   # Model maturity progress per domain
-│   │       │   ├── AISettingsToggle.svelte  # Per-domain AI/Rules switch
-│   │       │   ├── RecommendationCard.svelte  # Approve/reject + source badge
-│   │       │   └── ...
-│   │       └── routes/
-│   │           ├── +page.svelte          # Home: overview
-│   │           ├── zones/                # Zone list + detail
-│   │           ├── coop/                 # Coop panel + settings
-│   │           ├── recommendations/      # Recommendation queue
-│   │           ├── settings/ai/          # AI engine settings
-│   │           └── tutorial/             # Interactive onboarding wizard (steps 1–8)
-│   └── models/                  # .onnx model files (git-ignored, populated by training)
-├── config/
-│   └── hub.env                  # Environment configuration
-├── docs/
-│   └── mqtt-topic-schema.md     # MQTT topic hierarchy + payloads
-└── scripts/
-    └── generate_synthetic_data.py  # Seed TimescaleDB with realistic test data
-```
-
----
-
-## MQTT Topic Schema
-
-```
-farm/{node_id}/sensors/{sensor_type}    # Sensor readings (QoS 1)
-farm/{node_id}/heartbeat                # Node liveness (QoS 1, retain)
-farm/{node_id}/commands/{command_type}  # Actuator commands (hub → edge)
-farm/{node_id}/ack/{command_id}         # Command acknowledgments (edge → hub)
-```
-
-Each node has dedicated MQTT credentials with ACL scoped to `farm/{node_id}/#`. The hub bridge subscribes to `farm/#` with read/write access to all topics.
-
----
-
-## ML Engine (Phase 4)
+## ML Engine
 
 Three ONNX models (scikit-learn gradient boosting classifiers) replace rule-based threshold logic behind the same recommend-and-confirm UX. This is classical machine learning on structured tabular sensor data — not LLMs or generative AI.
 
@@ -289,28 +228,42 @@ The farmer can toggle each domain between ML and Rules independently from `/sett
 
 ---
 
-## Database Schema
+## Getting Started
 
-| Table | Type | Purpose |
-|-------|------|---------|
-| `sensor_readings` | Hypertable | All sensor data with quality flags and calibration |
-| `node_heartbeats` | Hypertable | Edge node liveness tracking |
-| `calibration_offsets` | Regular | Per-sensor calibration offsets (applied at ingestion) |
-| `zone_config` | Regular | Per-zone thresholds and plant metadata |
-| `flock_config` | Regular | Breed, hatch date, flock size, lighting |
-| `egg_counts` | Regular | Daily estimated egg counts from nesting box sensor |
-| `feed_daily_consumption` | Regular | Daily feed weight delta with refill detection |
-| `model_maturity` | Regular | Per-domain recommendation counts and approval rates |
+### Prerequisites
 
----
+- Raspberry Pi 5 (8GB) for the hub
+- Raspberry Pi Zero 2W for each garden zone (up to 4)
+- Raspberry Pi 5 (4GB) for the coop node
+- Sensors, relays, and wiring per the [hardware guide](docs/hardware/README.md)
 
-## Design Principles
+### Quick Start
 
-- **Local-only** — No cloud APIs, no external inference, no recurring costs. All data and ML processing stays on-premises.
-- **Recommend-and-confirm** — The system proposes, the farmer decides. No fully autonomous actions in v1.
-- **Sensor-based** — Plant health from soil sensors, not cameras. Flock health from weight sensors and production models.
-- **Hardware-agnostic** — Pluggable sensor adapters. Calibration at the hub, not the edge.
-- **Graceful degradation** — Edge nodes buffer locally during hub outages. Stale data is shown with visual indicators, never hidden. ML models fall back to threshold rules when confidence is low.
+```bash
+# Clone the repo
+git clone https://github.com/synaesthetik/backyard-farm.git
+cd backyard-farm
+
+# One-command setup: MQTT credentials, stack build, data seeding
+cd hub && bash dev-init.sh
+
+# Dashboard is at https://localhost:8443
+# Interactive tutorial auto-launches on first visit
+```
+
+`dev-init.sh` handles everything: generates MQTT credentials, starts Docker Compose, runs database migrations, seeds zone configuration and 6 weeks of synthetic sensor data, and trusts the Caddy local CA certificate.
+
+### Hardware Assembly
+
+Follow the [hardware documentation](docs/hardware/README.md) in build order:
+
+1. [Hub Assembly](docs/hardware/hub.md) — Pi 5, network, Docker
+2. [Power Distribution](docs/hardware/power.md) — 12V outdoor wiring, buck converters
+3. [Garden Node](docs/hardware/garden-node.md) — Pi Zero 2W, moisture/pH/temp sensors
+4. [Irrigation](docs/hardware/irrigation.md) — relay board, solenoid valves
+5. [Coop Node](docs/hardware/coop-node.md) — door actuator, limit switches, load cells
+
+Each guide includes a wiring diagram, pin mapping table, smoke test, and common mistakes section.
 
 ---
 
@@ -324,11 +277,11 @@ cd hub && docker compose up -d
 cd hub/dashboard && npm run dev
 
 # Run tests
-cd hub/bridge && python -m pytest tests/ -v        # 125 Python tests
-cd hub/dashboard && npx vitest run                  # 75 component tests
+cd hub/bridge && python -m pytest tests/ -v        # 144 Python tests
+cd hub/dashboard && npx vitest run                  # 94 component tests
 
 # Generate synthetic sensor data (for development without hardware)
-python scripts/generate_synthetic_data.py --weeks 6
+DB_HOST=localhost python scripts/generate_synthetic_data.py --weeks 6 --zones "zone-01,zone-02,zone-03,zone-04"
 
 # Production build
 cd hub/dashboard && npm run build
@@ -344,22 +297,64 @@ make docs-serve    # Serve docs locally at http://127.0.0.1:8000
 make docs-clean    # Remove built site/ directory
 ```
 
-Requires Python 3 and pip. Installs `mkdocs` and `mkdocs-material` from `requirements-docs.txt` automatically.
+Requires Python 3 and pip. MkDocs and Material theme are installed automatically from `requirements-docs.txt`.
 
-Built docs are written to `site/` (not committed to git). Open `site/index.html` or run `make docs-serve` for a live preview with hot reload.
+**Reference docs** cover every dashboard screen, configuration option, alert type, and automation rule. **Troubleshooting guide** covers the 20 most common failure modes with diagnostic steps and resolution.
 
-Full documentation source is in the `docs/` directory.
+Full documentation source is in the [`docs/`](docs/) directory. Hardware documentation is in [`docs/hardware/`](docs/hardware/README.md).
 
 ---
 
-## Roadmap
+## MQTT Topic Schema
 
-| Phase | Status | What it delivers |
-|-------|--------|-----------------|
-| 1. Hardware Foundation + Sensor Pipeline | Complete | Sensor data flowing with quality flags, stuck detection, node health |
-| 2. Actuator Control + Dashboard V1 | Complete | Irrigation, coop door, recommendations, alerts, PWA |
-| 3. Flock Management + Unified Dashboard | Complete | Egg tracking, production model, feed consumption, overview screen |
-| 4. ONNX ML Layer | Complete | ML-backed recommendations, model maturity, ML/Rules toggle |
-| 5. Operational Hardening | Planned | pH calibration, push notifications (ntfy), data retention |
-| 6. Hardware Shopping List | Planned | Complete BOM, wiring diagrams, smoke test procedures |
-| 7. Tutorial + User Docs | Planned | Interactive tutorial, reference docs, troubleshooting guide |
+```
+farm/{node_id}/sensors/{sensor_type}    # Sensor readings (QoS 1)
+farm/{node_id}/heartbeat                # Node liveness (QoS 1, retain)
+farm/{node_id}/commands/{command_type}  # Actuator commands (hub -> edge)
+farm/{node_id}/ack/{command_id}         # Command acknowledgments (edge -> hub)
+```
+
+Each node has dedicated MQTT credentials with ACL scoped to `farm/{node_id}/#`. The hub bridge subscribes to `farm/#` with read/write access to all topics.
+
+---
+
+## Database Schema
+
+| Table | Type | Purpose |
+|-------|------|---------|
+| `sensor_readings` | Hypertable | All sensor data with quality flags and calibration |
+| `sensor_readings_hourly` | Continuous aggregate | Hourly rollups (avg/min/max) for long-term trends |
+| `node_heartbeats` | Hypertable | Edge node liveness tracking |
+| `calibration_offsets` | Regular | Per-sensor calibration offsets + last calibration date |
+| `zone_config` | Regular | Per-zone thresholds and plant metadata |
+| `flock_config` | Regular | Breed, hatch date, flock size, lighting |
+| `egg_counts` | Regular | Daily estimated egg counts from nesting box sensor |
+| `feed_daily_consumption` | Regular | Daily feed weight delta with refill detection |
+
+**Retention policies:** Raw sensor data is automatically purged after 90 days. Hourly rollups are retained for 2 years.
+
+---
+
+## Design Principles
+
+- **Local-only** — No cloud APIs, no external inference, no recurring costs. All data and ML processing stays on-premises.
+- **Recommend-and-confirm** — The system proposes, the farmer decides. No fully autonomous actions in v1.
+- **Sensor-based** — Plant health from soil sensors, not cameras. Flock health from weight sensors and production models.
+- **Hardware-agnostic** — Pluggable sensor adapters. Calibration at the hub, not the edge.
+- **Graceful degradation** — Edge nodes buffer locally during hub outages. Stale data is shown with visual indicators, never hidden. ML models fall back to threshold rules when confidence is low.
+
+---
+
+## Project Status
+
+v1.0 milestone complete. All 7 phases delivered:
+
+| Phase | What it delivers |
+|-------|-----------------|
+| 1. Hardware Foundation + Sensor Pipeline | Sensor data flowing with quality flags, stuck detection, node health |
+| 2. Actuator Control + Dashboard V1 | Irrigation, coop door, recommendations, alerts, PWA |
+| 3. Flock Management + Unified Dashboard | Egg tracking, production model, feed consumption, overview screen |
+| 4. ONNX ML Layer | ML-backed recommendations, model maturity, ML/Rules toggle |
+| 5. Operational Hardening | pH calibration, push notifications (ntfy), data retention |
+| 6. Hardware Shopping List | Complete BOM, wiring diagrams, smoke test procedures |
+| 7. Tutorial + User Docs | Interactive tutorial, reference docs, troubleshooting guide |
