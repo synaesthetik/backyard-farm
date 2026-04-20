@@ -26,6 +26,8 @@ class WebSocketManager:
         # Phase 3 flock state
         self._egg_count: dict | None = None
         self._feed_consumption: dict | None = None
+        # Phase 4 model maturity (AI-07)
+        self._model_maturity: list[dict] = []
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
@@ -44,6 +46,7 @@ class WebSocketManager:
             "coop_schedule": self._coop_schedule,
             "egg_count": self._egg_count,
             "feed_consumption": self._feed_consumption,
+            "model_maturity": self._model_maturity,
         }
         await websocket.send_json(snapshot)
         logger.info("WebSocket client connected (%d total)", len(self.active_connections))
@@ -94,9 +97,8 @@ class WebSocketManager:
         elif delta.get("type") == "coop_schedule":
             self._coop_schedule = delta.get("schedule")
         elif delta.get("type") == "nesting_box":
-            import datetime
             self._egg_count = {
-                "today": delta.get("today", datetime.date.today().isoformat()),
+                "estimated_count": delta.get("estimated_count"),
                 "hen_present": delta.get("hen_present"),
                 "raw_weight_grams": delta.get("raw_weight_grams"),
                 "updated_at": delta.get("updated_at"),
@@ -106,6 +108,8 @@ class WebSocketManager:
                 "rate_grams_per_day": delta.get("rate_grams_per_day"),
                 "weekly": delta.get("weekly"),
             }
+        elif delta.get("type") == "model_maturity":
+            self._model_maturity = delta.get("domains", [])
 
     async def broadcast(self, delta: dict):
         """Broadcast delta to all connected WebSocket clients."""
