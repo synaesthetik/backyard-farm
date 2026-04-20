@@ -284,7 +284,12 @@ Plans:
   3. A troubleshooting guide covers the 20 most common failure modes (sensor offline, stale data, stuck sensor, failed irrigation, stuck door, MQTT disconnection, etc.) with diagnostic steps and resolution
   4. Documentation is versioned alongside the codebase and builds automatically (no separate publishing step)
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 07-01-PLAN.md — Tutorial SvelteKit pages at /tutorial/[1-8]: 8 steps, localStorage progress, auto-launch welcome banner, Tutorial tab in settings
+- [ ] 07-02-PLAN.md — MkDocs + Material setup, requirements-docs.txt, and full reference docs (all screens, config options, alerts, automation rules)
+- [ ] 07-03-PLAN.md — 20-failure-mode troubleshooting guide (symptom-first) and auto-build Makefile target
 
 **UI hint**: yes
 
@@ -300,7 +305,7 @@ Plans:
 | 4. ONNX AI Layer and Recommendation Engine | 4/5 | In Progress|  |
 | 5. Operational Hardening | 0/4 | Planned | - |
 | 6. Hardware Shopping List and Wiring Diagrams | 0/5 | Planned | - |
-| 7. Interactive Tutorial and User Documentation | 0/0 | Not started | - |
+| 7. Interactive Tutorial and User Documentation | 0/3 | Planned | - |
 
 ---
 
