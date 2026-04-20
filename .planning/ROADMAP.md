@@ -289,7 +289,7 @@ Plans:
 Plans:
 - [x] 07-01-PLAN.md — Tutorial SvelteKit pages at /tutorial/[1-8]: 8 steps, localStorage progress, auto-launch welcome banner, Tutorial tab in settings
 - [x] 07-02-PLAN.md — MkDocs + Material setup, requirements-docs.txt, and full reference docs (all screens, config options, alerts, automation rules)
-- [ ] 07-03-PLAN.md — 20-failure-mode troubleshooting guide (symptom-first) and auto-build Makefile target
+- [x] 07-03-PLAN.md — 20-failure-mode troubleshooting guide (symptom-first) and auto-build Makefile target
 
 **UI hint**: yes
 
