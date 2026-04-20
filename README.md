@@ -213,7 +213,8 @@ backyard-farm/
 │   │           ├── zones/                # Zone list + detail
 │   │           ├── coop/                 # Coop panel + settings
 │   │           ├── recommendations/      # Recommendation queue
-│   │           └── settings/ai/          # AI engine settings
+│   │           ├── settings/ai/          # AI engine settings
+│   │           └── tutorial/             # Interactive onboarding wizard (steps 1–8)
 │   └── models/                  # .onnx model files (git-ignored, populated by training)
 ├── config/
 │   └── hub.env                  # Environment configuration

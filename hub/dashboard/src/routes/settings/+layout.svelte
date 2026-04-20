@@ -8,6 +8,7 @@
     { label: 'Calibration', href: '/settings/calibration' },
     { label: 'Notifications', href: '/settings/notifications' },
     { label: 'Storage', href: '/settings/storage' },
+    { label: 'Tutorial', href: '/tutorial/1' },
   ];
 
   const pathname = $derived($page.url.pathname);

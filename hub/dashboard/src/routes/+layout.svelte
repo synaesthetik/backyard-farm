@@ -11,15 +11,26 @@
 
   let toastMessage = $state('');
   let toastVisible = $state(false);
+  let showTutorialBanner = $state(false);
 
   function handleToast(event) {
     toastMessage = event.detail?.message ?? 'An error occurred';
     toastVisible = true;
   }
 
+  function dismissWelcome() {
+    localStorage.setItem('tutorial_welcome_dismissed', 'true');
+    showTutorialBanner = false;
+  }
+
   onMount(() => {
     dashboardStore.connect();
     window.addEventListener('farm:toast', handleToast);
+
+    if (!localStorage.getItem('tutorial_completed') &&
+        !localStorage.getItem('tutorial_welcome_dismissed')) {
+      showTutorialBanner = true;
+    }
 
     return () => {
       dashboardStore.disconnect();
@@ -45,6 +56,18 @@
   </header>
 
   <TabBar />
+
+  {#if showTutorialBanner}
+    <div class="tutorial-banner" role="banner">
+      <span class="tutorial-banner-text">
+        New to Backyard Farm? Take the interactive tutorial to get up and running.
+      </span>
+      <div class="tutorial-banner-actions">
+        <a href="/tutorial/1" class="tutorial-banner-start">Start Tutorial</a>
+        <button class="tutorial-banner-dismiss" onclick={dismissWelcome}>Skip</button>
+      </div>
+    </div>
+  {/if}
 
   <AlertBar alerts={dashboardStore.alerts} />
 
@@ -139,4 +162,38 @@
       padding: var(--spacing-lg) var(--spacing-2xl);
     }
   }
+
+  .tutorial-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
+    border-bottom: 1px solid color-mix(in srgb, var(--color-accent) 30%, var(--color-border));
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 13px;
+    flex-wrap: wrap;
+  }
+  .tutorial-banner-text { color: var(--color-text-secondary); flex: 1; min-width: 200px; }
+  .tutorial-banner-actions { display: flex; gap: var(--spacing-sm); align-items: center; }
+  .tutorial-banner-start {
+    color: var(--color-accent);
+    font-weight: 600;
+    text-decoration: none;
+    padding: 4px 12px;
+    border: 1px solid var(--color-accent);
+    border-radius: 4px;
+  }
+  .tutorial-banner-start:hover { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
+  .tutorial-banner-dismiss {
+    color: var(--color-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .tutorial-banner-dismiss:hover { color: var(--color-text-secondary); }
 </style>
