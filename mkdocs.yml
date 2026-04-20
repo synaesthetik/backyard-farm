@@ -1,0 +1,41 @@
+site_name: Backyard Farm Platform
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  palette:
+    scheme: slate
+    primary: custom
+    accent: custom
+  features:
+    - search.suggest
+    - search.highlight
+    - navigation.sections
+    - navigation.top
+  font:
+    text: Roboto
+    code: Roboto Mono
+
+extra_css:
+  - stylesheets/extra.css
+
+plugins:
+  - search
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Dashboard:
+    - Overview: dashboard/overview.md
+    - Zones: dashboard/zones.md
+    - Coop: dashboard/coop.md
+    - Recommendations: dashboard/recommendations.md
+    - Settings: dashboard/settings.md
+  - Configuration:
+    - Zones: configuration/zones.md
+    - Coop: configuration/coop.md
+    - Alerts: configuration/alerts.md
+    - Automation: configuration/automation.md
+  - Troubleshooting: troubleshooting/index.md
+  - Hardware: hardware/README.md

@@ -23,5 +23,8 @@ hub/dashboard/build/
 hub/data/
 hub/mosquitto/passwd
 
+# MkDocs generated site (never commit build output)
+site/
+
 # macOS
 .DS_Store
